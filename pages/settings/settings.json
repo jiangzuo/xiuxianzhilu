@@ -1,0 +1,11 @@
+{
+  "usingComponents": {
+    "van-icon": "@vant/weapp/icon/index",
+    "van-dialog": "@vant/weapp/dialog/index",
+    "van-tabs": "@vant/weapp/tabs/index",
+    "van-tab": "@vant/weapp/tab/index",
+    "van-popup": "@vant/weapp/popup/index",
+    "van-button": "@vant/weapp/button/index" 
+  },
+  "navigationBarTitleText": "功法阁"
+}

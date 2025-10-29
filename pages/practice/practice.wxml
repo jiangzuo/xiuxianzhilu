@@ -1,0 +1,70 @@
+<!-- pages/practice/practice.wxml -->
+
+<!-- 用于弹出“修炼完成”提示 -->
+<van-notify id="van-notify" />
+<!-- 预埋 Dialog 组件供 JS 调用 -->
+<van-dialog id="van-dialog" />
+
+<!-- 页面主容器 -->
+<view class="container">
+  <van-tabs 
+  active="{{ activeTab }}" 
+  bind:change="onTabChange" 
+  color="#4a90e2" 
+  ellipsis="{{ false }}"
+  line-animated="{{ false }}" 
+>
+    
+    <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:for-item="categoryItems" wx:key="key">
+      
+      <van-tab title="{{ categoryMap[key] }}" name="{{ key }}">
+        <view class="content-wrapper">
+          <view class="category-exp-header">
+            累计修为: {{ totalExpMap[key] }}
+          </view>
+          
+          <view class="gongfa-grid-container">
+            <block wx:if="{{ categoryItems.length > 0 }}">
+              <block wx:for="{{ categoryItems }}" wx:key="id">
+                <view class="gongfa-item" bind:tap="onCultivate" data-gongfa="{{ item }}" data-category="{{ key }}">
+                  <view class="gongfa-item-icon">
+                    <image class="gongfa-book-icon" src="/images/{{ categoryIconMap[key] }}" mode="aspectFit" />
+                  </view>
+                  <view class="gongfa-item-name">{{ item.name }}</view>
+                  <view class="gongfa-item-count">已修炼 {{ item.count }} 次</view>
+                </view>
+              </block>
+            </block>
+            
+            <view wx:else class="empty-state">
+              <view class="empty-text">尚未编入此路线的功法</view>
+              <view class="empty-link" bind:tap="navigateToSettings">前往功法阁</view>
+            </view>
+          </view>
+        </view>
+      </van-tab>
+    </block>
+  </van-tabs>
+</view>
+
+
+<!-- 【弹窗1】“修炼中”的进度条 (伪弹窗) -->
+<view class="loading-mask" wx:if="{{ isCultivating }}">
+  <view class="loading-content">
+    <view class="loading-text">修炼中...</view>
+    <view class="loading-bar">
+      <view class="loading-bar-inner" style="animation-duration: 2s;"></view>
+    </view>
+  </view>
+</view>
+
+
+<!-- 【弹窗2】“境界突破”的全屏动画 (伪弹窗) -->
+<view class="level-up-mask" wx:if="{{ showLevelUp }}" bind:tap="closeLevelUp">
+  <view class="level-up-content" animation="{{ levelUpAnimation }}">
+    <view class="level-up-title">{{ levelUpInfo.realm }}</view>
+    <view class="level-up-desc">{{ levelUpInfo.description }}</view>
+    <view class="level-up-level-name">{{ levelUpInfo.levelName }}</view>
+    <button class="level-up-confirm" catch:tap="closeLevelUp">确 定</button>
+  </view>
+</view>

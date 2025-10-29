@@ -1,0 +1,7 @@
+{
+  "usingComponents": {
+    "van-icon": "@vant/weapp/icon/index",
+    "van-progress": "@vant/weapp/progress/index"
+  },
+  "navigationStyle": "custom"
+}

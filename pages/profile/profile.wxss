@@ -1,0 +1,126 @@
+/* pages/profile/profile.wxss */
+
+/* 页面主容器，实现背景和基本布局 */
+.page-container {
+  min-height: 100vh; /* 确保容器至少和屏幕一样高 */
+  background-size: cover; /* 背景图覆盖整个容器 */
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  flex-direction: column; /* 垂直布局 */
+  color: #f0f0f0; /* 默认文字颜色为浅色，以适应深色背景 */
+}
+
+/* 自定义导航栏 */
+.custom-nav {
+  height: 44px; /* 标准导航栏高度 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 500;
+  flex-shrink: 0; /* 防止被压缩 */
+}
+
+/* 主要内容区域 */
+.main-content {
+  flex-grow: 1; /* 占据剩余所有空间 */
+  padding: 32rpx;
+  box-sizing: border-box;
+}
+
+/* 通用卡片样式 */
+.section-card {
+  background-color: rgba(0, 0, 0, 0.4); /* 半透明黑色背景，营造质感 */
+  border-radius: 24rpx;
+  padding: 32rpx;
+  margin-bottom: 32rpx;
+  border: 1px solid rgba(255, 255, 255, 0.1); /* 细微的亮色边框 */
+  backdrop-filter: blur(10px); /* 毛玻璃效果，增加高级感 */
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* 1. 境界与修为卡片 */
+.realm-card .realm-name {
+  font-size: 40rpx;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 24rpx;
+  color: #ffd700; /* 金色高亮 */
+}
+.exp-bar-container {
+  display: flex;
+  align-items: center;
+  gap: 20rpx; /* 元素间距 */
+}
+.exp-bar-container .exp-label,
+.exp-bar-container .exp-value {
+  font-size: 24rpx;
+  color: #ccc;
+  flex-shrink: 0; /* 防止文字被压缩 */
+}
+.exp-bar-container .exp-value {
+  min-width: 160rpx; /* 给右侧数字留出足够空间 */
+  text-align: right;
+}
+
+/* 2. 五大属性卡片 */
+.attributes-card {
+  display: flex;
+  justify-content: space-around; /* 均匀分布 */
+}
+.attribute-item {
+  text-align: center;
+}
+.attribute-item .attribute-value {
+  font-size: 36rpx;
+  font-weight: 500;
+  margin-bottom: 8rpx;
+}
+.attribute-item .attribute-name {
+  font-size: 24rpx;
+  color: #ccc;
+}
+
+/* 3. 每日语录卡片 */
+.quote-card {
+  display: flex;
+  align-items: center;
+  font-size: 26rpx;
+  color: #ddd;
+  line-height: 1.6;
+}
+.quote-card .van-icon {
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+/* 4. 修炼法相 */
+.avatar-container {
+  display: flex;
+  justify-content: center;
+  margin-top: -100rpx;
+}
+.avatar-image {
+  width: 600rpx;
+  height: 600rpx;
+  opacity: 1; /* 法相可以稍微透明一点，更有意境 */
+}
+
+/* 5. 功能入口 */
+.actions-container {
+  display: flex;
+  justify-content: space-around;
+  margin-top: -50rpx;
+  padding: 24rpx;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 24rpx;
+}
+.action-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  font-size: 24rpx;
+  color: rgb(228, 227, 227);
+}

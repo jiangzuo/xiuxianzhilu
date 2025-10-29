@@ -1,0 +1,74 @@
+/* pages/splash/splash.wxss */
+page {
+  height: 100%;
+}
+
+.splash-container {
+  width: 100%;
+  height: 100vh;
+  /* 【核心修正】移除所有 Flex 布局属性 */
+  /* display: flex; (删除) */
+  /* justify-content: center; (删除) */
+  /* align-items: flex-end; (删除) */
+  box-sizing: border-box;
+  position: relative; 
+  /* 【核心修正】确保这里没有 background-image 属性 */
+}
+
+/* 背景图样式 */
+.splash-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* 背景图在最底层 */
+}
+
+.action-area {
+  position: absolute;
+  bottom: 15vh;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  width: 60%; /* 按钮宽度 */
+  max-width: 500rpx;
+}
+
+.enter-button {
+  background-color: rgba(212, 175, 55, 0.8); /* 半透明的暗金色 */
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: 500;
+  padding: 24rpx 0;
+  text-align: center;
+  border-radius: 999px; /* 圆角胶囊形状 */
+  border: 1px solid rgba(255, 215, 0, 0.6); /* 亮金色边框 */
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.3); /* 阴影 */
+  backdrop-filter: blur(5px); /* 毛玻璃效果 */
+  -webkit-backdrop-filter: blur(5px);
+  transition: all 0.2s ease-in-out;
+  /* 应用“呼吸”动画，让按钮更醒目 */
+  animation: button-breathe 3s ease-in-out infinite;
+}
+
+.enter-button:active {
+  transform: scale(0.95);
+  background-color: rgba(212, 175, 55, 1); /* 点击时变实色 */
+}
+
+/* 按钮呼吸动画 */
+@keyframes button-breathe {
+  0% {
+    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 8rpx 40rpx rgba(255, 215, 0, 0.4); /* 阴影也发光 */
+    transform: scale(1.02);
+  }
+  100% {
+    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.3);
+    transform: scale(1);
+  }
+}

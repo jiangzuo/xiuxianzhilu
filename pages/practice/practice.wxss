@@ -1,0 +1,220 @@
+/* pages/practice/practice.wxss */
+page {
+  background-color: #ffffff;
+}
+.container {
+  padding: 0;
+}
+
+/* --- 【最终决战方案】手写 Tabs 下划线 --- */
+.van-tabs__scroll {
+  width: 100% !important;
+  overflow: hidden !important;
+}
+.van-tabs__nav {
+  background-color: #ffffff !important;
+  display: flex !important;
+  width: 100% !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  position: relative !important;
+}
+.van-tabs__line {
+  display: none !important;
+}
+.van-tab {
+  color: #666 !important;
+  flex: 1 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  position: relative !important;
+  z-index: 2;
+}
+.van-tab--active {
+  color: #4a90e2 !important;
+}
+.van-tab--active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2em;
+  height: 3px;
+  background-color: #4a90e2;
+  border-radius: 3px;
+  z-index: 1;
+}
+
+.content-wrapper {
+  background-color: #f7f8fa;
+  padding: 32rpx;
+  min-height: 70vh;
+}
+.category-exp-header {
+  padding: 0;
+  margin: 0; 
+  margin-bottom: 32rpx; 
+  color: #ff976a;
+  font-size: 26rpx;
+  text-align: center;
+  background-color: transparent; 
+}
+.gongfa-grid-container {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0;
+  gap: 24rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+.gongfa-item {
+  width: calc(50% - 12rpx);
+  flex-shrink: 0; 
+  background-color: #ffffff;
+  border-radius: 16rpx;
+  padding: 32rpx 24rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease-in-out;
+}
+.gongfa-item:active {
+  transform: scale(0.95);
+}
+.gongfa-item-icon {
+  width: 100rpx;
+  height: 100rpx;
+  margin-bottom: 20rpx;
+}
+.gongfa-book-icon {
+  width: 100%;
+  height: 100%;
+}
+.gongfa-item-name {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+  min-height: 70rpx;
+}
+.gongfa-item-count {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+.empty-state {
+  width: 100%;
+  text-align: center;
+  padding: 100rpx 0;
+  color: #969799;
+}
+.empty-link {
+  color: #4a90e2;
+  margin-top: 16rpx;
+  display: inline-block;
+}
+/* “修炼中”进度条 */
+.loading-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+.loading-content {
+  width: 70%;
+  text-align: center;
+}
+.loading-text {
+  color: #fff;
+  font-size: 32rpx;
+  margin-bottom: 24rpx;
+}
+.loading-bar {
+  width: 100%;
+  height: 16rpx;
+  background-color: #555;
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+.loading-bar-inner {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(to right, #ffd700, #ffb347);
+  border-radius: 8rpx;
+  animation-name: loading-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes loading-progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+/* “境界突破”全屏动画 */
+.level-up-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+  color: #a9a9a9;
+}
+.level-up-content {
+  width: 90%;
+  max-width: 680rpx;
+  background-color: #1a1e29;
+  padding: 60rpx 40rpx;
+  border-radius: 24rpx;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 50rpx rgba(0, 0, 0, 0.5);
+  transform: scale(0.5);
+  opacity: 0;
+}
+.level-up-title {
+  font-size: 80rpx;
+  font-weight: bold;
+  color: #ffd700;
+  margin-bottom: 40rpx;
+}
+.level-up-desc {
+  font-size: 28rpx;
+  line-height: 1.8;
+  margin-bottom: 40rpx;
+  text-align: justify;
+  color: #dcdcdc;
+}
+.level-up-level-name {
+  font-size: 36rpx;
+  font-weight: 500;
+  color: #ffffff;
+  margin-bottom: 60rpx;
+  padding: 16rpx;
+  border-top: 1px solid #444;
+  border-bottom: 1px solid #444;
+}
+.level-up-confirm {
+  background-color: #e6c478;
+  color: #1a1e29;
+  border-radius: 40rpx;
+  padding: 18rpx 60rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+.level-up-confirm:active {
+  background-color: #ffd700;
+}

@@ -1,0 +1,37 @@
+{
+  "pages": [
+    "pages/splash/splash",      
+    "pages/profile/profile",     
+    "pages/practice/practice",
+    "pages/settings/settings",
+    "pages/journal/list/list",
+    "pages/journal/edit/edit"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#fff",
+    "navigationBarTitleText": "修仙之路",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#969799",
+    "selectedColor": "#4a90e2",
+    "list": [
+      {
+        "pagePath": "pages/practice/practice",
+        "text": "修炼"
+      },
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我"
+      },
+      {
+        "pagePath": "pages/settings/settings",
+        "text": "设置"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

@@ -1,0 +1,28 @@
+/* app.wxss */
+@import "/styles/theme.wxss";
+
+/* Dialog 极简按钮样式 */
+.van-dialog__footer {
+  display: flex !important;
+  justify-content: space-around !important;
+  align-items: center !important;
+  padding: 36rpx 36rpx 36rpx !important;
+  border-top: none !important;
+}
+.van-dialog__button {
+  flex: none !important;
+  width: 240rpx !important;
+  height: 40rpx !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  background-color: transparent !important;
+  border: none !important;
+}
+.custom-cancel-button {
+  color: var(--color-text-primary) !important;
+}
+.custom-confirm-button {
+  color: var(--color-primary) !important;
+  font-weight: 500;
+}

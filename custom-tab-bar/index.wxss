@@ -1,0 +1,28 @@
+/* custom-tab-bar/index.wxss */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50px; /* 【核心修改】降低高度 */
+  background: #ffffff;
+  display: flex;
+  border-top: 1px solid #f7f8fa;
+  padding-bottom: env(safe-area-inset-bottom); /* 适配 iPhoneX 等底部安全区域 */
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.tab-bar-item {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 14px; /* 【核心修改】增大字体 */
+  color: #969799;
+  transition: color 0.2s;
+}
+
+.tab-bar-item.active {
+  color: #4a90e2;
+}

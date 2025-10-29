@@ -1,0 +1,43 @@
+<!-- pages/journal/edit/edit.wxml -->
+<view class="container">
+
+<view class="main-content">
+  <van-field
+    type="textarea"
+    value="{{ content }}"
+    placeholder="记录下此刻的所思所想..."
+    autosize
+    maxlength="500"
+    show-word-limit="{{ false }}"
+    class="textarea-field"
+    bind:change="onContentChange"
+  />
+  <view class="mood-selector">
+    <view class="mood-label">此刻心情：</view>
+    <view class="mood-options">
+      <view 
+        wx:for="{{ moodList }}" 
+        wx:key="key"
+        class="mood-item {{ selectedMood === item.key ? 'selected' : '' }}"
+        bind:tap="onMoodSelect"
+        data-mood-key="{{ item.key }}"
+      >
+        <text class="mood-emoji">{{ item.icon }}</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+<view class="footer">
+  <van-button 
+    type="primary" 
+    block 
+    round 
+    bind:tap="onSaveJournal"
+    disabled="{{ content.length === 0 }}"
+  >
+    保存感悟
+  </van-button>
+</view>
+
+</view>

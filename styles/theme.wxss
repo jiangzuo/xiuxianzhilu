@@ -1,0 +1,36 @@
+/* styles/theme.wxss */
+/* “水墨修仙”全局UI颜色及主题变量定义 */
+
+page {
+  /* --- 1. 基础色板 (Base Palette) --- */
+  --color-indigo: #5a7d9a;
+  --color-gold: #c0a36a;
+  --color-cinnabar: #a94442;
+  --color-rice-paper: #f4f1ea;
+  --color-white: #ffffff;
+  --color-ink: #3a3a3a;
+  --color-light-ink: #888888;
+  --color-mist-gray: #e0e0e0;
+
+  /* --- 2. 语义化颜色 (Semantic Colors) --- */
+  --color-primary: var(--color-indigo);
+  --color-accent: var(--color-gold);
+  --color-danger: var(--color-cinnabar);
+  
+  --color-background: var(--color-rice-paper);
+  --color-panel-bg: var(--color-white);
+  
+  --color-text-primary: var(--color-ink);
+  --color-text-secondary: var(--color-light-ink);
+  --color-border: var(--color-mist-gray);
+
+  /* --- 3. Vant 组件变量覆盖 --- */
+  --van-primary-color: var(--color-primary);
+
+  /* Dialog 弹窗定制 */
+  --van-dialog-confirm-button-text-color: var(--color-primary);
+  --van-dialog-cancel-button-text-color: var(--color-text-primary);
+  --van-dialog-button-height: 44px;
+  --van-dialog-round-button-border-radius: 999px;
+  --van-dialog-background-color: var(--color-panel-bg);
+}
