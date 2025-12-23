@@ -1,4 +1,4 @@
-// app.js (最终奥义 - Base64 内联大法版本)
+// app.js (最终奥义 - Base64 内联大法版本测试)
 const { fontBase64 } = require('./utils/font-data.js');
 
 App({
