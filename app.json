@@ -1,36 +1,50 @@
 {
   "pages": [
-    "pages/splash/splash",      
-    "pages/profile/profile",     
+    "pages/splash/splash",
+    "pages/profile/profile",
     "pages/practice/practice",
-    "pages/settings/settings",
-    "pages/journal/list/list",
-    "pages/journal/edit/edit"
+    "pages/settings/settings"
   ],
   "window": {
     "backgroundTextStyle": "light",
-    "navigationBarBackgroundColor": "#fff",
+    "navigationBarBackgroundColor": "#ECE9DD",
     "navigationBarTitleText": "修仙之路",
     "navigationBarTextStyle": "black"
   },
   "tabBar": {
     "custom": true,
-    "color": "#969799",
-    "selectedColor": "#4a90e2",
     "list": [
-      {
-        "pagePath": "pages/practice/practice",
-        "text": "修炼"
-      },
       {
         "pagePath": "pages/profile/profile",
         "text": "我"
       },
       {
+        "pagePath": "pages/practice/practice",
+        "text": "修炼"
+      },
+      {
         "pagePath": "pages/settings/settings",
-        "text": "设置"
+        "text": "功法"
       }
     ]
+  },
+  "subpackages": [
+    {
+      "root": "pkg_journal",
+      "pages": [
+        "pages/list/list",
+        "pages/edit/edit"
+      ]
+    }
+  ],
+  "lazyCodeLoading": "requiredComponents",
+  "usingComponents": {
+    "van-dialog": "@vant/weapp/dialog/index",
+    "van-notify": "@vant/weapp/notify/index",
+    "van-tabs": "@vant/weapp/tabs/index",
+    "van-tab": "@vant/weapp/tab/index",
+    "van-icon": "@vant/weapp/icon/index",
+    "van-popup": "@vant/weapp/popup/index"
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json"

@@ -1,8 +1,8 @@
 <!-- pages/splash/splash.wxml -->
-<view class="splash-container">
+<!-- 【核心改造】在主容器上动态绑定 pageClass -->
+<view class="splash-container {{ pageClass }}">
   <image class="splash-bg" src="/images/splash-bg.png" mode="aspectFill" />
 
-  <!-- 【核心修改】将 loading 区域替换为按钮 -->
   <view class="action-area">
     <view class="enter-button" bind:tap="onEnterButtonClick">
       踏上修仙之路

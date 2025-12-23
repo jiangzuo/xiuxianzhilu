@@ -1,0 +1,91 @@
+/* components/custom-dialog/custom-dialog.wxss */
+.dialog-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.dialog-container {
+  width: 80%;
+  max-width: 600rpx;
+  position: relative;
+  
+  /* 【核心改造】应用隶书字体 */
+  font-family: 'LishuFont', sans-serif;
+}
+
+.dialog-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.dialog-content {
+  position: relative;
+  z-index: 2;
+  padding: 48rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.dialog-title {
+  font-size: 34rpx;
+  font-weight: 500;
+  color: #3a3a3a;
+  margin-bottom: 24rpx;
+}
+
+.dialog-message {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 48rpx;
+}
+
+.dialog-actions {
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  gap: 32rpx;
+}
+
+.action-button {
+  width: 240rpx;
+  height: 80rpx;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.button-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.button-text {
+  position: relative;
+  z-index: 2;
+  font-size: 28rpx;
+  font-weight: 500;
+  
+  /* 【核心改造】将按钮文字颜色改为白色 */
+  color: #ffffff; 
+}

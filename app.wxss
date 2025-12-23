@@ -1,28 +1,25 @@
 /* app.wxss */
+
+/* 只保留你原来的 @import 语句 */
 @import "/styles/theme.wxss";
 
-/* Dialog 极简按钮样式 */
-.van-dialog__footer {
-  display: flex !important;
-  justify-content: space-around !important;
-  align-items: center !important;
-  padding: 36rpx 36rpx 36rpx !important;
-  border-top: none !important;
+page {
+  font-family: 'LishuFont', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Segoe UI, Arial, Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft Yahei', sans-serif;
 }
-.van-dialog__button {
-  flex: none !important;
-  width: 240rpx !important;
-  height: 40rpx !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  background-color: transparent !important;
-  border: none !important;
+
+/* 2. 为最核心的文本组件 <text> 明确指定字体 */
+/*    这是解决“寿元:”、“修为”等文字的关键 */
+text {
+  font-family: 'LishuFont' !important;
 }
-.custom-cancel-button {
-  color: var(--color-text-primary) !important;
-}
-.custom-confirm-button {
-  color: var(--color-primary) !important;
-  font-weight: 500;
+
+/* 3. 如果你的按钮文字也需要改变，可以加上这一条 */
+/* button {
+  font-family: 'LishuFont' !important;
+} */
+
+/* 4. 保留 .font-lishu 类，作为一个备用的、可以手动施加的样式 */
+/*    虽然现在可能用不上了，但留着无害 */
+.font-lishu {
+  font-family: 'LishuFont' !important;
 }

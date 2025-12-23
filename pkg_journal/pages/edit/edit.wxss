@@ -1,0 +1,160 @@
+/* pages/journal/edit/edit.wxss (最终真机 Flexbox 稳定版) */
+
+page {
+  background-color: #ECE9DD;
+}
+
+/* 1. 页面总容器：Flex 布局，三段式（头、中、底） */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* 2. 顶部导航栏：高度固定 */
+.custom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 32rpx;
+  flex-shrink: 0;
+}
+.nav-left, .nav-right {
+  width: 40rpx;
+  display: flex;
+  align-items: center;
+}
+.nav-center {
+  flex: 1;
+  text-align: center;
+  font-size: 34rpx;
+  font-weight: 500;
+}
+
+/* 3. 【核心修改】主要内容区：从 Grid 改为 Flex 布局 */
+.main-content {
+  flex: 1; /* 撑满剩余空间 */
+  padding: 32rpx;
+  
+  display: flex; /* 使用 Flex 布局 */
+  flex-direction: column; /* 垂直排列 */
+  gap: 24rpx; /* 在子元素之间创建间距 */
+  overflow: hidden; /* 防止内容溢出，对于Flex布局也很重要 */
+}
+
+/* --- 通用背景图片样式 --- */
+.background-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+.content-layer {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* --- 4. 文本输入区域 (Flex 的弹性项) --- */
+.textarea-wrapper {
+  position: relative;
+  width: 100%;
+  /* 【核心修改】让其占据所有剩余空间 */
+  flex: 1; 
+  /* 【核心修改】为了防止在某些极端情况下内容溢出，增加一个最小高度限制 */
+  min-height: 0; 
+  display: flex;
+}
+.textarea-field {
+  width: 100%;
+  height: 100%; 
+  padding: 48rpx;
+  box-sizing: border-box;
+  font-size: 28rpx;
+  color: #3a3a3a;
+  line-height: 1.8;
+  position: relative;
+  z-index: 2;
+  background-color: transparent;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Segoe UI, Arial, Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft Yahei', sans-serif !important;
+}
+
+/* --- 5. 心情选择区域 (Flex 的固定项) --- */
+.mood-selector-wrapper {
+  position: relative;
+  width: 100%;
+  flex-shrink: 0; /* 高度固定，禁止被压缩 */
+  display: flex;
+  align-items: center;
+  height: 120rpx; 
+}
+
+.mood-content-layer {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0 48rpx;
+}
+.mood-label {
+  font-size: 28rpx;
+  color: #666;
+  margin-right: 24rpx;
+  flex-shrink: 0;
+}
+.mood-options {
+  display: flex;
+  flex: 1;
+  justify-content: space-around;
+}
+.mood-item {
+  width: 80rpx;
+  height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease-in-out;
+}
+.mood-emoji {
+  font-size: 52rpx;
+}
+.mood-item.selected {
+  transform: scale(1.15);
+  background-color: rgba(255, 215, 0, 0.2);
+}
+
+/* --- 6. 底部固定按钮 (保持不变，但为完整性附上) --- */
+.footer-action {
+  flex-shrink: 0;
+  padding: 24rpx 64rpx calc(env(safe-area-inset-bottom) + 32rpx);
+  display: flex;
+  justify-content: center;
+}
+.save-button {
+  width: 400rpx;
+  height: 100rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 32rpx;
+  font-weight: 500;
+  color: #3a3a3a;
+  position: relative;
+  overflow: hidden;
+}
+.save-button .button-bg-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+.save-button .button-text {
+  position: relative;
+  z-index: 2;
+}

@@ -1,0 +1,24 @@
+// utils/formatter.wxs
+
+var CJKType = function (str) {
+  if (!str) return '';
+  
+  // 【核心改造】全新的、更健壮的排版逻辑
+  
+  // 匹配 “XX(YY)” 格式，例如 “练气(一层)” 或 “筑基(初期)”
+  var regex = getRegExp("(.{2})(.+)");
+  var match = str.match(regex);
+  
+  if (match && match.length === 3) {
+    // match[1] 是 "练气", match[2] 是 "一层"
+    // 返回带换行符的字符串
+    return match[1] + '\n' + match[2];
+  }
+  
+  // 如果不匹配（比如“凡人”），直接返回原字符串
+  return str;
+}
+
+module.exports = {
+  CJKType: CJKType
+}

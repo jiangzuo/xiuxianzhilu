@@ -1,0 +1,53 @@
+<!-- pages/journal/edit/wxml (最终真机适配修复版) -->
+<view class="page-container {{ pageClass }}">
+
+<view class="custom-nav" style="padding-top: {{ statusBarHeight }}px;">
+  <view class="nav-left" bind:tap="navigateBack">
+    <van-icon name="arrow-left" size="20px" />
+  </view>
+  <view class="nav-center">记录感悟</view>
+  <view class="nav-right"></view>
+</view>
+
+<view class="main-content">
+  
+  <view class="textarea-wrapper">
+    <!-- 【【【核心修改 ①】】】 将 mode 修改为 aspectFill，防止纹理拉伸变形 -->
+    <image class="background-image" src="/images/journal-textarea-bg.png" mode="aspectFill" />
+    <textarea 
+      class="textarea-field"
+      value="{{ content }}"
+      placeholder="记录下此刻的所思所想..."
+      maxlength="500"
+      bindinput="onContentChange"
+    />
+  </view>
+
+  <view class="mood-selector-wrapper">
+    <!-- 【【【核心修改 ②】】】 此处背景比较规律，scaleToFill 或 stretch 均可，保持不变 -->
+    <image class="background-image" src="/images/journal-mood-bg.png" mode="scaleToFill" />
+    <view class="content-layer mood-content-layer">
+      <view class="mood-label">此刻心情：</view>
+      <view class="mood-options">
+        <view 
+          wx:for="{{ moodList }}" 
+          wx:key="key"
+          class="mood-item {{ selectedMood === item.key ? 'selected' : '' }}"
+          bind:tap="onMoodSelect"
+          data-mood-key="{{ item.key }}"
+        >
+          <text class="mood-emoji">{{ item.icon }}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+</view>
+
+<view class="footer-action">
+  <view class="save-button" bind:tap="onSaveJournal">
+    <image class="button-bg-img" src="/images/button-bg-long.png" mode="stretch" />
+    <text class="button-text">+ 保存感悟</text>
+  </view>
+</view>
+</view>

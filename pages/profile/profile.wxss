@@ -1,126 +1,237 @@
-/* pages/profile/profile.wxss */
+/* pages/profile/profile.wxss (最终 Flexbox 稳定修复版) */
 
-/* 页面主容器，实现背景和基本布局 */
-.page-container {
-  min-height: 100vh; /* 确保容器至少和屏幕一样高 */
-  background-size: cover; /* 背景图覆盖整个容器 */
-  background-position: center;
-  background-repeat: no-repeat;
-  display: flex;
-  flex-direction: column; /* 垂直布局 */
-  color: #f0f0f0; /* 默认文字颜色为浅色，以适应深色背景 */
+/* --- 1. 页面级样式 --- */
+page {
+  height: 100vh;
+  overflow: hidden;
+  color: #3a3a3a;
+  background-color: #ECE9DD;
+  font-family: sans-serif;
 }
 
-/* 自定义导航栏 */
+/* --- 2. 页面总容器 --- */
+.page-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding-bottom: calc(50px + env(safe-area-inset-bottom));
+}
+
+/* --- 3. 顶部固定区 --- */
+.top-section {
+  flex-shrink: 0;
+  padding: 0 48rpx;
+  z-index: 10;
+  background-color: #ECE9DD;
+}
 .custom-nav {
-  height: 44px; /* 标准导航栏高度 */
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 17px;
-  font-weight: 500;
-  flex-shrink: 0; /* 防止被压缩 */
+  position: relative;
+}
+.nav-title { 
+  font-size: 36rpx; 
+  font-weight: 500; 
 }
 
-/* 主要内容区域 */
-.main-content {
-  flex-grow: 1; /* 占据剩余所有空间 */
-  padding: 32rpx;
+/* --- 面板通用样式 --- */
+.panel {
+  box-sizing: border-box;
+  margin-bottom: 36rpx;
+  position: relative; /* 【关键】为内部绝对定位的背景图提供容器 */
+  overflow: hidden; /* 防止背景图溢出 */
+}
+
+/* 【修复】背景图的通用样式 */
+.panel-bg-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* 置于底层 */
+}
+
+/* 【修复】面板内容的容器，确保在背景图之上 */
+.panel-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
   box-sizing: border-box;
 }
 
-/* 通用卡片样式 */
-.section-card {
-  background-color: rgba(0, 0, 0, 0.4); /* 半透明黑色背景，营造质感 */
-  border-radius: 24rpx;
-  padding: 32rpx;
-  margin-bottom: 32rpx;
-  border: 1px solid rgba(255, 255, 255, 0.1); /* 细微的亮色边框 */
-  backdrop-filter: blur(10px); /* 毛玻璃效果，增加高级感 */
-  -webkit-backdrop-filter: blur(10px);
+/* --- 境界与修为面板 --- */
+.realm-panel {
+  margin-top: 24rpx;
+  height: 140rpx;
 }
-
-/* 1. 境界与修为卡片 */
-.realm-card .realm-name {
-  font-size: 40rpx;
-  font-weight: bold;
-  text-align: center;
-  margin-bottom: 24rpx;
-  color: #ffd700; /* 金色高亮 */
-}
-.exp-bar-container {
-  display: flex;
+.realm-panel .panel-content {
+  display: flex; 
+  flex-direction: column; 
+  justify-content: center; 
   align-items: center;
-  gap: 20rpx; /* 元素间距 */
+  padding: 10rpx 70rpx 10rpx 80rpx;
 }
-.exp-bar-container .exp-label,
-.exp-bar-container .exp-value {
-  font-size: 24rpx;
-  color: #ccc;
-  flex-shrink: 0; /* 防止文字被压缩 */
+.realm-name { 
+  font-size: 36rpx; 
+  font-weight: bold; 
+  margin-bottom: 12rpx; 
 }
-.exp-bar-container .exp-value {
-  min-width: 160rpx; /* 给右侧数字留出足够空间 */
-  text-align: right;
+.exp-bar-wrapper { 
+  width: 100%; 
+  display: flex; 
+  align-items: center; 
+  font-size: 28rpx; 
+}
+.exp-label { 
+  margin-right: 16rpx; 
+}
+.progress-bar-container {
+  flex: 1;
+  height: 48rpx;
+  padding: 8rpx 12rpx; 
+  box-sizing: border-box;
+  position: relative; /* 【关键】为内部元素定位提供容器 */
+  border-radius: 999px 0 0 999px; 
+  overflow: hidden;
+}
+.progress-bar-portion {
+  /* 【核心修改 ①】将高度从 100% 改为一个具体的值，例如 24rpx */
+  /* 你可以根据喜好调整这个数值大小 */
+  height: 36rpx;
+
+  /* 【核心修改 ②】将 top 从 0 改为 50% */
+  top: 50%;
+  transform: translateY(-50%);
+  left: 0.1; /* 依然从左侧开始 */
+  border-radius: 6px 0 0 6px; /* 可以适当减小圆角，比如 2px，使其更匹配新的高度 */
+  transition: width 0.3s ease-in-out;
+  z-index: 3;
+  background: linear-gradient(to right, #252525, #c0c0c0);
+  position: absolute;
 }
 
-/* 2. 五大属性卡片 */
-.attributes-card {
-  display: flex;
-  justify-content: space-around; /* 均匀分布 */
-}
-.attribute-item {
-  text-align: center;
-}
-.attribute-item .attribute-value {
-  font-size: 36rpx;
-  font-weight: 500;
-  margin-bottom: 8rpx;
-}
-.attribute-item .attribute-name {
-  font-size: 24rpx;
-  color: #ccc;
+.exp-value-inside {
+  position: absolute;
+  right: 24rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 4; /* 最高层 */
+  font-size: 22rpx;
+  color: #3a3a3a;
+  text-shadow: 0 0 4rpx rgba(0, 0, 0, 0.5); 
 }
 
-/* 3. 每日语录卡片 */
-.quote-card {
-  display: flex;
-  align-items: center;
-  font-size: 26rpx;
-  color: #ddd;
-  line-height: 1.6;
+/* --- 五大属性面板 --- */
+.attributes-panel {
+  height: 140rpx;
 }
-.quote-card .van-icon {
-  margin-right: 16rpx;
-  flex-shrink: 0;
-}
-
-/* 4. 修炼法相 */
-.avatar-container {
-  display: flex;
+.attributes-panel .panel-content {
+  display: flex; 
+  flex-direction: column; 
   justify-content: center;
-  margin-top: -100rpx;
+  padding: 10rpx 70rpx 10rpx 80rpx;
+  font-size: 28rpx;
+}
+.attr-row { 
+  display: flex; 
+  width: 100%; 
+  margin-bottom: 12rpx;
+}
+.attr-row:last-child {
+  margin-bottom: 0;
+}
+.attr-item { 
+  width: 33.33%; 
+  display: flex; 
+  flex-shrink: 0; 
+}
+.attr-label {
+  flex-shrink: 0; 
+  margin-right: 6rpx;
+}
+.attr-value {
+  flex-grow: 1; 
+  font-weight: 500;
+}
+
+/* --- 每日语录面板 --- */
+.quote-panel {
+  width: 97%; 
+  margin-left: auto;
+  margin-right: auto;
+  min-height: 80rpx; 
+  display: flex;
+  align-items: center;
+}
+.quote-panel-bg { /* 此处 image 标签的样式本身就是正确的，无需修改 */
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+.quote-content-wrapper {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding: 16rpx 48rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+.quote-icon { 
+  width: 32rpx; 
+  height: 32rpx; 
+  flex-shrink: 0;
+  margin-right: 24rpx;
+}
+.quote-text {
+  font-size: 28rpx;
+}
+
+/* --- 4. 中间滚动区 --- */
+.middle-section {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .avatar-image {
-  width: 600rpx;
-  height: 600rpx;
-  opacity: 1; /* 法相可以稍微透明一点，更有意境 */
+  width: 700rpx;
+  height: 700rpx;
 }
 
-/* 5. 功能入口 */
-.actions-container {
+/* --- 5. 底部固定区 --- */
+.bottom-section {
+  flex-shrink: 0;
   display: flex;
   justify-content: space-around;
-  margin-top: -50rpx;
-  padding: 24rpx;
-  background-color: rgba(0, 0, 0, 0.3);
-  border-radius: 24rpx;
+  padding: 24rpx 48rpx;
+  z-index: 10;
+  background: linear-gradient(to top, #ECE9DD, rgba(236, 233, 221, 0));
 }
-.action-item {
-  display: flex;
-  flex-direction: column;
+.action-button {
+  width: 280rpx; 
+  height: 120rpx;
+  display: flex; 
+  justify-content: center; 
   align-items: center;
-  gap: 12rpx;
-  font-size: 24rpx;
-  color: rgb(228, 227, 227);
+  font-size: 32rpx; 
+  font-weight: 500;
+  position: relative; /* 【关键】为背景图和文字提供定位容器 */
+  overflow: hidden; /* 防止背景图溢出 */
+}
+/* 【修复】按钮文字样式 */
+.btn-text {
+  position: relative;
+  z-index: 2; /* 确保文字在背景图之上 */
 }

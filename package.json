@@ -3,7 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "app.js",
-  "devDependencies": {},
+  "dependencies": {
+    "@vant/weapp": "^1.11.5"
+  },
+  "devDependencies": {
+    "font-carrier": "^0.3.1"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

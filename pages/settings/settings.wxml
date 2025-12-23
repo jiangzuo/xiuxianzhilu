@@ -1,52 +1,73 @@
-<!-- pages/settings/settings.wxml -->
-<van-dialog 
-  id="van-dialog"
-  confirm-button-class="custom-confirm-button"
-  cancel-button-class="custom-cancel-button"
+<!-- pages/settings/wxml (最终决战版 - 修复导航栏) -->
+
+<custom-dialog 
+  class="{{ pageClass }}"
+  show="{{ showDeleteDialog }}"
+  title="确认删除"
+  message="确定要废弃此功法吗？"
+  bind:confirm="onDeleteConfirm"
 />
 
-<view class="container">
-  <van-tabs 
-  active="{{ activeTab }}" 
-  bind:change="onTabChange" 
-  color="#4a90e2" 
-  ellipsis="{{ false }}"
-  line-animated="{{ false }}" 
->
-    <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:for-item="categoryItems" wx:key="key">
-      <van-tab title="{{ categoryMap[key] }}" name="{{ key }}">
-        <view class="gongfa-grid-container">
-          
-          <block wx:for="{{ categoryItems }}" wx:key="id">
-            <view class="gongfa-item" bind:tap="onEditGongfa" data-id="{{ item.id }}">
-              <view class="delete-icon" catch:tap="onDeleteTap" data-category="{{ key }}" data-id="{{ item.id }}">
-                <van-icon name="cross" color="#aaa" />
-              </view>
-              <view class="gongfa-item-icon">
-                <image class="gongfa-book-icon" src="/images/{{ categoryIconMap[key] }}" mode="aspectFit" />
-              </view>
-              <view class="gongfa-item-name">{{ item.name }}</view>
-              <view class="gongfa-item-exp">经验 +{{ item.exp }}</view>
-            </view>
-          </block>
+<view class="page-wrapper {{ pageClass }}">
+  <!-- 1. “大头部”容器 -->
+  <view class="header-container">
+    <view class="custom-nav" style="padding-top: {{ statusBarHeight }}px;">
+      <view class="nav-title">功法阁</view>
+    </view>
+    
+    <!-- 【核心修改】我们将完整的 van-tabs 结构（包含空的 van-tab）放在头部，用于生成导航栏 -->
+    <van-tabs 
+      active="{{ activeTab }}" 
+      bind:change="onTabChange" 
+      custom-class="header-tabs"
+      nav-class="settings-tabs-nav"
+      tab-class="settings-tab"
+      tab-active-class="settings-tab-active"
+    >
+      <!-- 
+        这个循环的唯一目的，就是告诉 van-tabs 需要渲染哪些导航标签。
+        每个 van-tab 的内容都是空的，不会占用任何空间。
+      -->
+      <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:key="key">
+        <van-tab title="{{ categoryMap[key] }}" name="{{ key }}"></van-tab>
+      </block>
+    </van-tabs>
+  </view>
 
-          <view class="gongfa-item add-gongfa-btn" bind:tap="onAddNewGongfa">
-            <!-- 【核心修正】class. -> class= -->
-            <view class="gongfa-item-icon">
-              <van-icon name="add-o" size="32px" color="#aaa" />
-            <!-- 【核心修正】</dview> -> </view> -->
+  <!-- 2. “滚动区”容器 -->
+  <view class="scroll-container">
+    <!-- 我们在这里根据 activeTab 的值，只渲染对应的那一个内容面板 -->
+    <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:for-item="categoryItems" wx:key="key">
+      <view class="tab-content" wx:if="{{ activeTab === key }}">
+        <view class="container">
+          <view class="gongfa-grid-container">
+            
+            <block wx:for="{{ categoryItems }}" wx:key="id">
+              <view wx:if="{{ item.status !== 'archived' }}" class="gongfa-item" bind:tap="onEditGongfa" data-id="{{ item.id }}">
+                <view class="delete-icon" catch:tap="onDeleteTap" data-category="{{ key }}" data-id="{{ item.id }}">
+                  <van-icon name="cross" color="#aaa" />
+                </view>
+                <image class="gongfa-book-icon" src="/images/{{ categoryIconMap[key] }}" mode="aspectFit" />
+                <view class="gongfa-item-name">{{ item.name }}</view>
+                <view class="gongfa-item-exp">经验 +{{ item.exp }}</view>
+              </view>
+            </block>
+            
+            <view class="gongfa-item add-gongfa-btn" bind:tap="onAddNewGongfa">
+              <van-icon name="add-o" size="48rpx" color="#aaa" />
+              <view class="add-text">编入新功法</view>
             </view>
-            <view class="gongfa-item-name add-text">编入新功法</view>
+            
           </view>
         </view>
-      </van-tab>
+      </view>
     </block>
-  </van-tabs>
+  </view>
 </view>
 
-<!-- Picker 弹出层 -->
+<!-- Picker 弹出层 (保持不变) -->
 <van-popup show="{{ showPickerPopup }}" position="bottom" bind:close="closeGongfaPickerPopup" round>
-  <view class="picker-container">
+  <view class="picker-container {{ pageClass }}">
     <view class="picker-toolbar">
       <view class="picker-button cancel" bind:tap="closeGongfaPickerPopup">取消</view>
       <view class="picker-title">{{ isEditMode ? '修改功法' : '选择功法' }}</view>
