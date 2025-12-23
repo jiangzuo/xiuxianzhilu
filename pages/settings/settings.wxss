@@ -1,40 +1,70 @@
-/* pages/settings/settings.wxss */
+/* pages/settings/wxss (最终大头部固定版) */
+
+/* --- 1. 页面级样式 --- */
 page {
-  background-color: #ffffff;
-  color: #333;
-}
-.container {
-  padding: 0;
+  height: 100%;
+  overflow: hidden; /* 禁止页面本身滚动 */
+  background-color: #ECE9DD;
 }
 
-/* --- 【最终决战方案】手写 Tabs 下划线 --- */
-.van-tabs__scroll {
-  width: 100% !important;
-  overflow: hidden !important;
+/* --- 2. 页面总容器：Flex 布局 + 精确的底部安全距离 --- */
+.page-wrapper {
+  height: 100%;
+  display: flex;
+  flex-direction: column; /* 垂直排列：大头部 + 滚动区 */
+  /* 
+    【关键】为整个页面增加一个底部的 padding，
+    这个 padding 的高度正好等于悬浮的 TabBar 的高度。
+    这样，滚动区的内容就不会被 TabBar 遮挡。
+  */
+  padding-bottom: calc(50px + env(safe-area-inset-bottom));
+  box-sizing: border-box; /* 确保 padding 不会增加总高度 */
 }
-.van-tabs__nav {
-  background-color: #ffffff !important;
-  display: flex !important;
-  width: 100% !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  position: relative !important;
+
+/* --- 3. “大头部”容器：高度由内容决定，固定不动 --- */
+.header-container {
+  flex-shrink: 0; /* 禁止被压缩 */
+  background-color: #ECE9DD; /* 和页面背景色一致 */
+}
+/* (3a) 头部的自定义导航栏 */
+.custom-nav {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+.nav-title {
+  font-size: 34rpx;
+  font-weight: 500;
+}
+/* (3b) 头部的 Tabs 导航栏 (借用 van-tabs 的壳) */
+.header-tabs /deep/ .van-tabs__content {
+  display: none; /* 【关键】我们只用它的导航栏，所以把它的内容区隐藏掉 */
+}
+
+/* --- 4. “滚动区”容器：撑满剩余空间，并成为唯一的滚动容器 --- */
+.scroll-container {
+  flex: 1; /* 占据所有剩余空间 */
+  overflow-y: auto; /* 成为唯一的滚动容器 */
+  -webkit-overflow-scrolling: touch; /* 优化 iOS 滚动体验 */
+}
+
+/* --- 5. Tabs 导航栏的美化样式 (作用于头部的 .header-tabs) --- */
+.settings-tabs-nav {
+  background-color: #ECE9DD !important; 
+}
+.settings-tab {
+  color: #888 !important;
+}
+.settings-tab-active {
+  color: #3a3a3a !important;
+  font-weight: 500;
 }
 .van-tabs__line {
   display: none !important;
 }
-.van-tab {
-  color: #666 !important;
-  flex: 1 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  position: relative !important;
-  z-index: 2;
-}
-.van-tab--active {
-  color: #4a90e2 !important;
-}
-.van-tab--active::after {
+.settings-tab-active::after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -42,68 +72,65 @@ page {
   transform: translateX(-50%);
   width: 2em;
   height: 3px;
-  background-color: #4a90e2;
+  background-color: #3BB89B;
   border-radius: 3px;
-  z-index: 1;
 }
 
-/* 功法卡片网格容器 */
-.gongfa-grid-container {
-  display: flex;
-  flex-wrap: wrap;
+/* --- 6. 滚动区内部的样式 --- */
+.container {
   padding: 32rpx;
-  gap: 24rpx;
-  background-color: #f7f8fa;
 }
+.gongfa-grid-container { 
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36rpx; 
+}
+
+/* --- 7. 功法卡片及其他组件的样式 --- */
 .gongfa-item {
-  position: relative;
-  width: calc(50% - 12rpx);
-  background-color: #ffffff;
-  border-radius: 16rpx;
-  padding: 32rpx 24rpx;
+  background-color: #DEDEDE; 
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08); 
+  border-radius: 24rpx;
+  padding: 32rpx;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  text-align: center;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
-}
-.gongfa-item-icon {
-  width: 100rpx;
-  height: 100rpx;
-  margin-bottom: 20rpx;
-  display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  position: relative;
+}
+.delete-icon {
+  position: absolute;
+  top: 24rpx;
+  right: 24rpx;
 }
 .gongfa-book-icon {
-  width: 100%;
-  height: 100%;
+  width: 160rpx;
+  height: 160rpx;
+  margin-bottom: 24rpx;
 }
 .gongfa-item-name {
   font-size: 28rpx;
-  color: #333;
+  color: #3a3a3a;
   font-weight: 500;
-  min-height: 70rpx;
 }
 .gongfa-item-exp {
   font-size: 24rpx;
   color: #999;
-  margin-top: 8rpx;
-}
-.delete-icon {
-  position: absolute;
-  top: 16rpx;
-  right: 16rpx;
+  margin-top: 12rpx;
 }
 .add-gongfa-btn {
-  border: 1px dashed #ddd;
+  background-color: transparent;
+  border: 2rpx dashed #bbb;
   box-shadow: none;
 }
 .add-text {
+  margin-top: 12rpx;
+  font-size: 28rpx;
   color: #999;
 }
-/* picker-view 样式 */
+
+/* Picker 弹出层样式 */
 .picker-container {
   background-color: #ffffff;
 }

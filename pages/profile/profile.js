@@ -1,8 +1,10 @@
 // pages/profile/profile.js
 const { LEVEL_SYSTEM, QUOTES_LIBRARY } = require('../../utils/level-data.js');
+const app = getApp();
 
 Page({
   data: {
+    pageClass: '',
     statusBarHeight: 0,
     userInfo: {
       levelName: '凡人',
@@ -25,27 +27,32 @@ Page({
     this.setData({
       statusBarHeight: systemInfo.statusBarHeight
     });
+
+    const applyFont = () => { this.setData({ pageClass: 'font-lishu' }); };
+    if (app.globalData.fontLoaded) { applyFont(); } 
+    else { app.fontReadyCallback = app.fontReadyCallback ? app.fontReadyCallback + applyFont : applyFont; }
+    
   },
 
   onShow() {
-    // 【核心】调用自定义 TabBar 的更新方法
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().updateSelected('/pages/profile/profile');
     }
-    // 【核心】调用数据更新的主函数
     this.updateAllUserData();
     this.updateDailyQuote();
   },
 
-  // 【核心】确保这个函数及其所有辅助函数都存在且正确
   updateAllUserData() {
     const userCultivations = wx.getStorageSync('userCultivations') || { body: [], mind: [], skill: [], wealth: [] };
+    
+    // 【核心改造】这里的计算逻辑，现在与 practice.js 完全统一
     const totalExpMap = {
       body: this.calculateTotalExp(userCultivations.body),
       mind: this.calculateTotalExp(userCultivations.mind),
       skill: this.calculateTotalExp(userCultivations.skill),
       wealth: this.calculateTotalExp(userCultivations.wealth),
     };
+
     const totalExp = Object.values(totalExpMap).reduce((sum, current) => sum + current, 0);
     const levelInfo = this.calculateLevelInfo(totalExp);
     const attributes = this.calculateAttributes(totalExpMap);
@@ -56,35 +63,47 @@ Page({
     });
   },
 
+  
+  /**
+   * 计算单个分类的总经验
+   * 修正为累加 totalExpEarned 字段
+   */
   calculateTotalExp(cultivationList) {
     if (!cultivationList || cultivationList.length === 0) return 0;
-    return cultivationList.reduce((sum, item) => sum + (item.exp * (item.count || 0)), 0);
+    // 直接读取每个功法已经记录好的“功劳簿”
+    return cultivationList.reduce((sum, item) => sum + (item.totalExpEarned || 0), 0);
   },
+
 
   calculateLevelInfo(totalExp) {
     let accumulatedExp = 0;
     for (let i = 0; i < LEVEL_SYSTEM.length; i++) {
       const currentLevel = LEVEL_SYSTEM[i];
-      if (currentLevel.expToNext === Infinity) return currentLevel;
+      if (currentLevel.expToNext === Infinity) {
+        return {
+          // ... 最高等级处理 ...
+          expPercentage: '100%' // 【核心改造】
+        };
+      }
       if (totalExp < accumulatedExp + currentLevel.expToNext) {
         const currentExp = totalExp - accumulatedExp;
+        const percentage = (currentExp / currentLevel.expToNext) * 100;
         return {
           levelName: currentLevel.name,
           currentExp: currentExp,
           expToNext: currentLevel.expToNext,
-          expPercentage: (currentExp / currentLevel.expToNext) * 100,
+          // 【核心改造】在这里直接拼接上 '%' 单位
+          expPercentage: percentage + '%' 
         };
       }
       accumulatedExp += currentLevel.expToNext;
     }
-    const highestLevel = LEVEL_SYSTEM[LEVEL_SYSTEM.length - 1];
+    // ... 保险代码 ...
     return {
-      levelName: highestLevel.name,
-      currentExp: "∞",
-      expToNext: "∞",
-      expPercentage: 100,
+      // ...
+      expPercentage: '100%' // 【核心改造】
     };
-  },
+    },
   
   calculateAttributes(totalExpMap) {
     const attributes = {
@@ -116,7 +135,7 @@ Page({
   },
 
   navigateToJournal() {
-    wx.navigateTo({ url: '/pages/journal/list/list' });
+    wx.navigateTo({ url: '/pkg_journal/pages/list/list' })
   },
 
   navigateToReview() {

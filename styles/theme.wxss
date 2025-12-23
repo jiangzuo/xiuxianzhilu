@@ -3,9 +3,12 @@
 
 page {
   /* --- 1. 基础色板 (Base Palette) --- */
+  /* (保留主题色以备将来使用) */
   --color-indigo: #5a7d9a;
   --color-gold: #c0a36a;
   --color-cinnabar: #a94442;
+  
+  /* (常用的基础色) */
   --color-rice-paper: #f4f1ea;
   --color-white: #ffffff;
   --color-ink: #3a3a3a;
@@ -13,24 +16,23 @@ page {
   --color-mist-gray: #e0e0e0;
 
   /* --- 2. 语义化颜色 (Semantic Colors) --- */
+  /* (保留主题色以备将来使用) */
   --color-primary: var(--color-indigo);
   --color-accent: var(--color-gold);
   --color-danger: var(--color-cinnabar);
   
+  /* (常用的语义化颜色) */
   --color-background: var(--color-rice-paper);
   --color-panel-bg: var(--color-white);
-  
   --color-text-primary: var(--color-ink);
   --color-text-secondary: var(--color-light-ink);
   --color-border: var(--color-mist-gray);
 
-  /* --- 3. Vant 组件变量覆盖 --- */
+  /* --- 3. Vant 组件变量覆盖 (只保留有用的) --- */
   --van-primary-color: var(--color-primary);
+}
 
-  /* Dialog 弹窗定制 */
-  --van-dialog-confirm-button-text-color: var(--color-primary);
-  --van-dialog-cancel-button-text-color: var(--color-text-primary);
-  --van-dialog-button-height: 44px;
-  --van-dialog-round-button-border-radius: 999px;
-  --van-dialog-background-color: var(--color-panel-bg);
+/* 定义全局字体应用类 */
+.font-lishu {
+  font-family: 'LishuFont', sans-serif;
 }

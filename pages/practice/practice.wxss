@@ -1,39 +1,59 @@
-/* pages/practice/practice.wxss */
+/* pages/practice/practice.wxss (最终大头部固定版) */
+
 page {
-  background-color: #ffffff;
-}
-.container {
-  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background-color: #ECE9DD;
 }
 
-/* --- 【最终决战方案】手写 Tabs 下划线 --- */
-.van-tabs__scroll {
-  width: 100% !important;
-  overflow: hidden !important;
+.page-wrapper {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: calc(50px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
-.van-tabs__nav {
-  background-color: #ffffff !important;
-  display: flex !important;
-  width: 100% !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  position: relative !important;
+
+.header-container {
+  flex-shrink: 0;
+  background-color: #ECE9DD;
+}
+.custom-nav {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+.nav-title {
+  font-size: 34rpx;
+  font-weight: 500;
+}
+.header-tabs /deep/ .van-tabs__content {
+  display: none;
+}
+
+.scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* --- Tabs 导航栏的美化样式 --- */
+.practice-tabs-nav {
+  background-color: #ECE9DD !important; 
+}
+.practice-tab {
+  color: #888 !important;
+}
+.practice-tab-active {
+  color: #3a3a3a !important;
+  font-weight: 500;
 }
 .van-tabs__line {
   display: none !important;
 }
-.van-tab {
-  color: #666 !important;
-  flex: 1 !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  position: relative !important;
-  z-index: 2;
-}
-.van-tab--active {
-  color: #4a90e2 !important;
-}
-.van-tab--active::after {
+.practice-tab-active::after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -41,83 +61,88 @@ page {
   transform: translateX(-50%);
   width: 2em;
   height: 3px;
-  background-color: #4a90e2;
+  background-color: #3BB89B;
   border-radius: 3px;
-  z-index: 1;
 }
 
-.content-wrapper {
-  background-color: #f7f8fa;
+/* --- 内容区域及其他组件样式 (保持不变) --- */
+.container {
   padding: 32rpx;
-  min-height: 70vh;
 }
 .category-exp-header {
   padding: 0;
-  margin: 0; 
-  margin-bottom: 32rpx; 
-  color: #ff976a;
-  font-size: 26rpx;
+  margin: 0rpx 0 32rpx; 
+  color: #FF8D28;
+  font-size: 28rpx;
   text-align: center;
-  background-color: transparent; 
 }
-.gongfa-grid-container {
-  display: flex;
-  flex-wrap: wrap;
-  padding: 0;
-  gap: 24rpx;
-  width: 100%;
-  box-sizing: border-box;
+.exp-number {
+  color: #FF8D28;
+  font-size: 32rpx;
+  font-weight: 500;
+  margin-left: 8rpx;
+}
+.gongfa-grid-container { 
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36rpx; 
 }
 .gongfa-item {
-  width: calc(50% - 12rpx);
-  flex-shrink: 0; 
-  background-color: #ffffff;
-  border-radius: 16rpx;
-  padding: 32rpx 24rpx;
+  
+  background-color: #DEDEDE; 
+  
+  /* 3. 添加阴影 */
+  box-shadow: 0 8rpx 12rpx rgba(0, 0, 0, 0.08); 
+  
+  border-radius: 24rpx; /* 增加圆角，配合阴影更好看 */
+  padding: 32rpx;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
-  text-align: center;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s ease-in-out;
-}
-.gongfa-item:active {
-  transform: scale(0.95);
-}
-.gongfa-item-icon {
-  width: 100rpx;
-  height: 100rpx;
-  margin-bottom: 20rpx;
 }
 .gongfa-book-icon {
-  width: 100%;
-  height: 100%;
+  width: 160rpx;
+  height: 160rpx;
+  margin-bottom: 24rpx;
 }
 .gongfa-item-name {
   font-size: 28rpx;
-  color: #333;
+  color: #3a3a3a;
   font-weight: 500;
-  min-height: 70rpx;
 }
 .gongfa-item-count {
   font-size: 24rpx;
   color: #999;
-  margin-top: 8rpx;
+  margin-top: 12rpx;
 }
+
+/* 空状态 (保持不变) */
 .empty-state {
   width: 100%;
   text-align: center;
   padding: 100rpx 0;
+}
+.empty-text {
   color: #969799;
+  font-size: 28rpx;
 }
 .empty-link {
   color: #4a90e2;
   margin-top: 16rpx;
   display: inline-block;
 }
-/* “修炼中”进度条 */
-.loading-mask {
+
+/* 弹窗样式 (保持不变) */
+.loading-mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 100; }
+.loading-content { width: 70%; text-align: center; }
+.loading-text { color: #fff; font-size: 32rpx; margin-bottom: 24rpx; }
+.loading-bar { width: 100%; height: 16rpx; background-color: #555; border-radius: 8rpx; overflow: hidden; }
+.loading-bar-inner { width: 0%; height: 100%; background: linear-gradient(to right, #ffd700, #ffb347); border-radius: 8rpx; animation-name: loading-progress; animation-timing-function: linear; animation-fill-mode: forwards; }
+@keyframes loading-progress { from { width: 0%; } to { width: 100%; } }
+/* --- 【核心改造】境界突破弹窗 --- */
+.level-up-mask {
   position: fixed;
   top: 0;
   left: 0;
@@ -127,94 +152,95 @@ page {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 100;
-}
-.loading-content {
-  width: 70%;
-  text-align: center;
-}
-.loading-text {
-  color: #fff;
-  font-size: 32rpx;
-  margin-bottom: 24rpx;
-}
-.loading-bar {
-  width: 100%;
-  height: 16rpx;
-  background-color: #555;
-  border-radius: 8rpx;
-  overflow: hidden;
-}
-.loading-bar-inner {
-  width: 0%;
-  height: 100%;
-  background: linear-gradient(to right, #ffd700, #ffb347);
-  border-radius: 8rpx;
-  animation-name: loading-progress;
-  animation-timing-function: linear;
-  animation-fill-mode: forwards;
-}
-@keyframes loading-progress {
-  from { width: 0%; }
-  to { width: 100%; }
-}
-/* “境界突破”全屏动画 */
-.level-up-mask {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.85);
-  display: flex;
-  justify-content: center;
-  align-items: center;
   z-index: 200;
-  color: #a9a9a9;
+  padding: 64rpx;
+  box-sizing: border-box;
 }
+
+.level-up-bg {
+  position: absolute;
+  width: 90%;
+  max-width: 680rpx;
+  z-index: 1;
+}
+
 .level-up-content {
   width: 90%;
   max-width: 680rpx;
-  background-color: #1a1e29;
-  padding: 60rpx 40rpx;
-  border-radius: 24rpx;
-  text-align: center;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 0 50rpx rgba(0, 0, 0, 0.5);
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   transform: scale(0.5);
   opacity: 0;
 }
-.level-up-title {
-  font-size: 80rpx;
-  font-weight: bold;
-  color: #ffd700;
-  margin-bottom: 40rpx;
+
+/* 【核心改造】顶部的法球 */
+.level-up-orb-wrapper {
+  position: relative;
+  width: 360rpx; 
+  height: 360rpx;
+  margin-top: -120rpx;
 }
+.level-up-orb-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.level-up-orb-text {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  white-space: pre-wrap;
+  text-align: center;
+}
+/* 移除不再需要的 .realm-text 样式 */
+
+/* 2. 放大境界文字 */
+.level-text {
+  font-size: 72rpx; /* 增大字号 */
+  font-weight: bold; /* 加粗 */
+  line-height: 1.3;
+}
+
+
+/* 中间的描述文字 */
 .level-up-desc {
   font-size: 28rpx;
+  color: #5c5241; /* 棕褐色 */
   line-height: 1.8;
-  margin-bottom: 40rpx;
   text-align: justify;
-  color: #dcdcdc;
+  margin-top: 48rpx;
+  padding: 0 48rpx;
 }
-.level-up-level-name {
-  font-size: 36rpx;
-  font-weight: 500;
-  color: #ffffff;
-  margin-bottom: 60rpx;
-  padding: 16rpx;
-  border-top: 1px solid #444;
-  border-bottom: 1px solid #444;
-}
+
+/* 底部的确认按钮 */
 .level-up-confirm {
-  background-color: #e6c478;
-  color: #1a1e29;
-  border-radius: 40rpx;
-  padding: 18rpx 60rpx;
-  font-size: 32rpx;
-  font-weight: 500;
-  transition: all 0.2s;
+  width: 240rpx;
+  height: 80rpx;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 64rpx;
 }
-.level-up-confirm:active {
-  background-color: #ffd700;
+.confirm-button-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.confirm-button-text {
+  position: relative;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #fff;
 }

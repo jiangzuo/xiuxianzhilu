@@ -1,80 +1,93 @@
-<!-- pages/profile/profile.wxml -->
+<!-- pages/profile/profile.wxml (最终修复所有错误版) -->
+<view class="page-container {{ pageClass }}">
 
-<!-- 主容器，包含背景 -->
-<view class="page-container" style="background-image: url('/images/profile-bg.png');">
-  
-  <!-- 自定义导航栏区域 -->
-  <!-- 使用 style 内联样式，动态设置上边距以适配不同手机的状态栏 -->
-  <view class="custom-nav" style="padding-top: {{ statusBarHeight }}px;">
+<!-- 1. 顶部固定区 -->
+<view class="top-section" style="padding-top: {{ statusBarHeight }}px;">
+  <view class="custom-nav">
     <view class="nav-title">我的洞府</view>
   </view>
-
-  <!-- 主要内容区域 -->
-  <view class="main-content">
-    
-    <!-- 1. 境界与修为 -->
-    <view class="section-card realm-card">
+  
+  <!-- 境界与修为面板 -->
+  <view class="panel realm-panel">
+    <!-- 【修复】使用 image 标签作为背景 -->
+    <image class="panel-bg-img" src="/images/panel-bg-realm.png" mode="stretch" />
+    <!-- 内容容器 -->
+    <view class="panel-content">
       <view class="realm-name">{{ userInfo.levelName }}</view>
-      <view class="exp-bar-container">
+      <view class="exp-bar-wrapper">
         <text class="exp-label">修为</text>
-        <van-progress 
-          percentage="{{ userInfo.expPercentage }}" 
-          show-pivot="{{ false }}" 
-          color="linear-gradient(to right, #ffd700, #ffb347)"
-          track-color="#555"
-        />
-        <text class="exp-value">{{ userInfo.currentExp }} / {{ userInfo.expToNext }}</text>
+        <view class="progress-bar-container">
+          <!-- 【修复】使用 image 标签作为背景 -->
+          <image class="panel-bg-img" src="/images/progress-bar-bg.png" mode="stretch" />
+          <view class="progress-bar-portion" style="width: {{ userInfo.expPercentage }};"></view>
+          <text class="exp-value-inside">{{ userInfo.currentExp }}/{{ userInfo.expToNext }}</text>
+        </view>
       </view>
     </view>
+  </view>
 
-    <!-- 2. 五大属性 -->
-    <view class="section-card attributes-card">
-      <view class="attribute-item">
-        <view class="attribute-value">{{ userAttributes.shouYuan }}</view>
-        <view class="attribute-name">寿元</view>
+  <!-- 五维属性面板 -->
+  <view class="panel attributes-panel">
+    <!-- 【修复】使用 image 标签作为背景 -->
+    <image class="panel-bg-img" src="/images/panel-bg-attributes.png" mode="stretch" />
+    <!-- 内容容器 -->
+    <view class="panel-content">
+      <view class="attr-row">
+        <view class="attr-item">
+          <text class="attr-label">寿元:</text>
+          <text class="attr-value">{{ userAttributes.shouYuan }}</text>
+        </view>
+        <view class="attr-item">
+          <text class="attr-label">体质:</text>
+          <text class="attr-value">{{ userAttributes.tiZhi }}</text>
+        </view>
+        <view class="attr-item">
+          <text class="attr-label">心境:</text>
+          <text class="attr-value">{{ userAttributes.xinJing }}</text>
+        </view>
       </view>
-      <view class="attribute-item">
-        <view class="attribute-value">{{ userAttributes.tiZhi }}</view>
-        <view class="attribute-name">体质</view>
-      </view>
-      <view class="attribute-item">
-        <view class="attribute-value">{{ userAttributes.xinJing }}</view>
-        <view class="attribute-name">心境</view>
-      </view>
-      <view class="attribute-item">
-        <view class="attribute-value">{{ userAttributes.zhiHui }}</view>
-        <view class="attribute-name">智慧</view>
-      </view>
-      <view class="attribute-item">
-        <view class="attribute-value">{{ userAttributes.caiFu }}</view>
-        <view class="attribute-name">财富</view>
+      <view class="attr-row">
+        <view class="attr-item">
+          <text class="attr-label">智慧:</text>
+          <text class="attr-value">{{ userAttributes.zhiHui }}</text>
+        </view>
+        <view class="attr-item">
+          <text class="attr-label">财富:</text>
+          <text class="attr-value">{{ userAttributes.caiFu }}</text>
+        </view>
       </view>
     </view>
+  </view>
 
-    <!-- 3. 每日语录 -->
-    <view class="section-card quote-card">
-      <van-icon name="chat-o" size="18px" />
+  <!-- 每日语录面板 (此面板结构已符合规范，无需修改) -->
+  <view class="panel quote-panel">
+    <image class="quote-panel-bg" src="/images/panel-bg-quote-stretchable.png" mode="widthFix" />
+    <view class="quote-content-wrapper">
+      <image class="quote-icon" src="/images/icon-yinyang.png" />
       <text class="quote-text">{{ dailyQuote }}</text>
     </view>
-
-    <!-- 4. 修炼法相 -->
-    <view class="avatar-container">
-      <image class="avatar-image" src="/images/profile-avatar.png" mode="aspectFit" />
-    </view>
-
-    <!-- 5. 功能入口 -->
-    <view class="actions-container">
-      <view class="action-item" bind:tap="navigateToJournal">
-        <van-icon name="records" size="24px" />
-        <text>感悟日记</text>
-      </view>
-      <view class="action-item" bind:tap="navigateToReview">
-        <van-icon name="description" size="24px" />
-        <text>修炼回顾</text>
-      </view>
-      <!-- 更多入口可以在这里添加 -->
-    </view>
-
   </view>
+</view>
+
+<!-- 2. 中间滚动区 -->
+<view class="middle-section">
+  <view class="avatar-wrapper">
+    <image class="avatar-image" src="/images/profile-avatar-ink.png" mode="aspectFit" />
+  </view>
+</view>
+
+<!-- 3. 底部固定区 -->
+<view class="bottom-section">
+  <view class="action-button journal-btn" bind:tap="navigateToJournal">
+    <!-- 【修复】使用 image 标签作为背景 -->
+    <image class="panel-bg-img" src="/images/btn-bg-ink.png" mode="stretch" />
+    <text class="btn-text">感悟日记</text>
+  </view>
+  <view class="action-button review-btn" bind:tap="navigateToReview">
+    <!-- 【修复】使用 image 标签作为背景 -->
+    <image class="panel-bg-img" src="/images/btn-bg-ink.png" mode="stretch" />
+    <text class="btn-text">修炼回顾</text>
+  </view>
+</view>
 
 </view>

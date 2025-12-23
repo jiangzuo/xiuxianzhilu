@@ -1,0 +1,44 @@
+<!-- pages/journal/list/list.wxml (最终修复版) -->
+<view class="page-container {{ pageClass }}">
+
+<!-- 1. 顶部固定区 -->
+<view class="custom-nav" style="padding-top: {{ statusBarHeight }}px;">
+  <view class="nav-left" bind:tap="navigateBack">
+    <van-icon name="arrow-left" size="20px" />
+  </view>
+  <view class="nav-center">我的感悟</view>
+  <view class="nav-right"></view>
+</view>
+
+<!-- 2. 中间滚动区 -->
+<view class="scroll-container">
+  <view class="list-container">
+    <block wx:if="{{ journals.length > 0 }}">
+      <view class="journal-item" wx:for="{{ journals }}" wx:key="id" bind:tap="onJournalTap" data-id="{{ item.id }}">
+        <!-- journal-item 内部的 image 背景用法是正确的，无需修改 -->
+        <image class="journal-item-bg" src="/images/journal-card-bg.png" mode="stretch" />
+        <view class="journal-item-content">
+          <view class="item-header">
+            <view class="item-date">{{ item.displayTime }}</view>
+            <text wx:if="{{ moodMap[item.mood] }}" class="item-mood-icon">{{ moodMap[item.mood].icon }}</text>
+          </view>
+          <view class="item-body">{{ item.content }}</view>
+        </view>
+      </view>
+    </block>
+    <view class="empty-container" wx:else>
+      <text class="empty-text">尚未留下任何感悟...</text>
+    </view>
+  </view>
+</view>
+
+<!-- 3. 底部固定区 -->
+<view class="footer-action">
+  <!-- 【【【核心修复】】】 移除 style，改用 <image> + <text> 结构 -->
+  <view class="add-button" bind:tap="navigateToEdit">
+    <image class="button-bg-img" src="/images/button-bg-long.png" mode="stretch" />
+    <text class="button-text">+ 记录感悟</text>
+  </view>
+</view>
+
+</view>

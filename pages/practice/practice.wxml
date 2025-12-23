@@ -1,55 +1,70 @@
-<!-- pages/practice/practice.wxml -->
+<!-- pages/practice/practice.wxml (最终大头部固定版) -->
 
-<!-- 用于弹出“修炼完成”提示 -->
-<van-notify id="van-notify" />
-<!-- 预埋 Dialog 组件供 JS 调用 -->
-<van-dialog id="van-dialog" />
+<wxs src="/utils/formatter.wxs" module="formatter" />
+<van-notify id="van-notify" top="{{ notifyTop }}" />
 
-<!-- 页面主容器 -->
-<view class="container">
-  <van-tabs 
-  active="{{ activeTab }}" 
-  bind:change="onTabChange" 
-  color="#4a90e2" 
-  ellipsis="{{ false }}"
-  line-animated="{{ false }}" 
->
+<view class="page-wrapper {{ pageClass }}">
+  <!-- 1. “大头部”容器 -->
+  <view class="header-container">
+    <view class="custom-nav" style="padding-top: {{ statusBarHeight }}px;">
+      <view class="nav-title">修炼场</view>
+    </view>
     
+    <!-- 我们将完整的 van-tabs 结构（包含空的 van-tab）放在头部，用于生成导航栏 -->
+    <van-tabs 
+      active="{{ activeTab }}" 
+      bind:change="onTabChange" 
+      custom-class="header-tabs"
+      nav-class="practice-tabs-nav"
+      tab-class="practice-tab"
+      tab-active-class="practice-tab-active"
+    >
+      <!-- 这个循环的唯一目的，就是告诉 van-tabs 需要渲染哪些导航标签 -->
+      <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:key="key">
+        <van-tab title="{{ categoryMap[key] }}" name="{{ key }}"></van-tab>
+      </block>
+    </van-tabs>
+  </view>
+
+  <!-- 2. “滚动区”容器 -->
+  <view class="scroll-container">
+    <!-- 我们在这里根据 activeTab 的值，只渲染对应的那一个内容面板 -->
     <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:for-item="categoryItems" wx:key="key">
-      
-      <van-tab title="{{ categoryMap[key] }}" name="{{ key }}">
-        <view class="content-wrapper">
+      <view class="tab-content" wx:if="{{ activeTab === key }}">
+        <view class="container">
           <view class="category-exp-header">
-            累计修为: {{ totalExpMap[key] }}
+            累计修为: <text class="exp-number">{{ totalExpMap[key] }}</text>
           </view>
-          
           <view class="gongfa-grid-container">
             <block wx:if="{{ categoryItems.length > 0 }}">
-              <block wx:for="{{ categoryItems }}" wx:key="id">
-                <view class="gongfa-item" bind:tap="onCultivate" data-gongfa="{{ item }}" data-category="{{ key }}">
-                  <view class="gongfa-item-icon">
-                    <image class="gongfa-book-icon" src="/images/{{ categoryIconMap[key] }}" mode="aspectFit" />
-                  </view>
+               <block wx:for="{{ categoryItems }}" wx:key="id">
+                <view wx:if="{{ item.status !== 'archived' }}" class="gongfa-item" bind:tap="onCultivate" data-gongfa="{{ item }}" data-category="{{ key }}">
+                  <image class="gongfa-book-icon" src="/images/{{ categoryIconMap[key] }}" mode="aspectFit" />
                   <view class="gongfa-item-name">{{ item.name }}</view>
                   <view class="gongfa-item-count">已修炼 {{ item.count }} 次</view>
                 </view>
               </block>
             </block>
-            
             <view wx:else class="empty-state">
               <view class="empty-text">尚未编入此路线的功法</view>
               <view class="empty-link" bind:tap="navigateToSettings">前往功法阁</view>
             </view>
           </view>
         </view>
-      </van-tab>
+      </view>
     </block>
-  </van-tabs>
+  </view>
 </view>
 
+<custom-dialog 
+  class="{{ pageClass }}"
+  show="{{ showCustomDialog }}"
+  title="{{ dialogTitle }}"
+  message="{{ dialogMessage }}"
+  bind:confirm="onDialogConfirm"
+/>
 
-<!-- 【弹窗1】“修炼中”的进度条 (伪弹窗) -->
-<view class="loading-mask" wx:if="{{ isCultivating }}">
+<view class="loading-mask {{ pageClass }}" wx:if="{{ isCultivating }}">
   <view class="loading-content">
     <view class="loading-text">修炼中...</view>
     <view class="loading-bar">
@@ -58,13 +73,27 @@
   </view>
 </view>
 
-
-<!-- 【弹窗2】“境界突破”的全屏动画 (伪弹窗) -->
-<view class="level-up-mask" wx:if="{{ showLevelUp }}" bind:tap="closeLevelUp">
+<!-- 境界突破弹窗 -->
+<view class="level-up-mask {{ pageClass }}" wx:if="{{ showLevelUp }}" bind:tap="closeLevelUp">
+  
+  <image class="level-up-bg" src="/images/level-up-bg.png" mode="widthFix" />
+  
   <view class="level-up-content" animation="{{ levelUpAnimation }}">
-    <view class="level-up-title">{{ levelUpInfo.realm }}</view>
+    
+    <view class="level-up-orb-wrapper">
+      <image class="level-up-orb-bg" src="/images/level-up-orb.png" />
+      <view class="level-up-orb-text">
+        <!-- 【位置就在这里】 -->
+        <view class="level-text">{{ formatter.CJKType(levelUpInfo.levelName) }}</view>
+      </view>
+    </view>
+    
     <view class="level-up-desc">{{ levelUpInfo.description }}</view>
-    <view class="level-up-level-name">{{ levelUpInfo.levelName }}</view>
-    <button class="level-up-confirm" catch:tap="closeLevelUp">确 定</button>
+    
+    <view class="level-up-confirm" catch:tap="closeLevelUp">
+      <image class="confirm-button-bg" src="/images/button-bg-confirm.png" />
+      <text class="confirm-button-text">确认</text>
+    </view>
+
   </view>
-</view>
+</view>```

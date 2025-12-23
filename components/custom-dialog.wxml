@@ -1,0 +1,20 @@
+<!--components/custom-dialog/custom-dialog.wxml-->
+<view class="dialog-mask" wx:if="{{ show }}" catch:touchmove="preventTouchMove">
+  <view class="dialog-container">
+    <image class="dialog-bg" src="/images/dialog-bg.png" mode="stretchFix" />
+    <view class="dialog-content">
+      <view class="dialog-title">{{ title }}</view>
+      <view class="dialog-message">{{ message }}</view>
+      <view class="dialog-actions">
+        <view class="action-button cancel" bind:tap="onCancel">
+          <image class="button-bg" src="/images/button-bg-cancel.png" />
+          <text class="button-text">{{ cancelText }}</text>
+        </view>
+        <view class="action-button confirm" bind:tap="onConfirm">
+          <image class="button-bg" src="/images/button-bg-confirm.png" />
+          <text class="button-text">{{ confirmText }}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
