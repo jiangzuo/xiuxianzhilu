@@ -97,3 +97,41 @@
 
   </view>
 </view>```
+
+<!-- 【新增】修炼结算弹窗 -->
+<view class="settlement-mask" wx:if="{{ showSettlement }}" catch:touchmove="true">
+  <view class="dialog-container">
+    <!-- 复用通用弹窗背景 -->
+    <image class="dialog-bg" src="/images/dialog-bg.png" mode="scaleToFill" />
+    
+    <view class="dialog-content">
+      <!-- 1. 顶部提示语 -->
+      <view class="settle-title">
+        恭喜！获得 <text class="highlight-num">{{ settlementInfo.exp }}</text> 点修为
+      </view>
+      <view class="settle-subtitle">
+        对{{ settlementInfo.categoryName }}的领悟有所提升
+      </view>
+
+      <!-- 2. 属性变化展示 (根据截图布局) -->
+      <view class="settle-attrs">
+        <block wx:for="{{ settlementInfo.attrChanges }}" wx:key="label">
+          <view class="attr-change-item">
+            <text class="attr-label">{{ item.label }}：</text>
+            <text class="attr-val">{{ item.val }}</text>
+            <!-- 红色上升箭头 -->
+            <text class="attr-arrow">↑</text>
+          </view>
+        </block>
+      </view>
+
+      <!-- 3. 确认按钮 -->
+      <view class="dialog-actions">
+        <view class="action-button confirm" bind:tap="closeSettlement">
+          <image class="button-bg" src="/images/button-bg-confirm.png" />
+          <text class="button-text">确认</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

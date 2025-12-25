@@ -244,3 +244,151 @@ page {
   font-weight: 500;
   color: #fff;
 }
+.settlement-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 900;
+}
+
+/* 1. 弹窗容器：设为相对定位，作为内部元素的坐标系 */
+.settlement-mask .dialog-container {
+  width: 80%;
+  max-width: 600rpx;
+  position: relative; /* 关键：让内部的 absolute 元素以此为基准 */
+  font-family: 'LishuFont', sans-serif;
+  animation: popIn 0.3s ease-out;
+  /* 不需要设背景色，因为有图片背景 */
+}
+
+/* 2. 背景图：绝对定位，铺满整个容器，并置于底层 */
+.settlement-mask .dialog-bg {
+  position: absolute; /* 关键：脱离文档流 */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* 放在最底层 */
+  border-radius: 12rpx; /* 可选：稍微圆角一点 */
+}
+
+/* 3. 内容区域：相对定位，撑开高度，置于顶层 */
+.settlement-mask .dialog-content {
+  position: relative; /* 关键：让内容浮在背景图上面 */
+  z-index: 2; /* 比背景图高 */
+  padding: 48rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box; /* 确保 padding 不撑大容器 */
+}
+
+/* --- 文本样式 --- */
+.settle-title {
+  font-size: 34rpx;
+  color: #3a3a3a;
+  margin-top: 10rpx;
+  font-weight: 500;
+}
+
+.highlight-num {
+  font-size: 32rpx;
+  color: #a94442; /* 丹砂红 */
+  font-weight: bold;
+  margin: 0 6rpx;
+}
+
+.settle-subtitle {
+  font-size: 34rpx;
+  color: #3a3a3a;
+  margin-bottom: 22rpx;
+  font-weight: 500;
+}
+
+/* --- 属性变化列表 --- */
+.settle-attrs {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 40rpx;
+  margin-top: 10rpx;
+  margin-bottom: 30rpx;
+}
+
+.attr-change-item {
+  display: flex;
+  align-items: center;
+  font-size: 30rpx;
+  color: #3a3a3a;
+}
+
+.attr-label {
+  color: #555;
+}
+
+.attr-val {
+  font-family: sans-serif;
+  margin-left: 8rpx;
+  font-weight: bold;
+}
+
+.attr-arrow {
+  color: #d81e06;
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-left: 8rpx;
+  animation: floatUp 1s infinite;
+}
+
+@keyframes floatUp {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6rpx); }
+}
+
+/* --- 按钮样式修复 --- */
+.settlement-mask .dialog-actions {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.settlement-mask .action-button {
+  position: relative; /* 关键 */
+  width: 240rpx;      /* 限制按钮宽度 */
+  height: 80rpx;      /* 限制按钮高度 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 按钮背景图：绝对定位铺满按钮容器 */
+.settlement-mask .button-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* 按钮文字：浮在背景图上面 */
+.settlement-mask .button-text {
+  position: relative;
+  z-index: 2;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 500;
+  letter-spacing: 2rpx;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

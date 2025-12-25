@@ -1,28 +1,37 @@
-// pages/practice/practice.js (最终大头部固定版)
+// pages/practice/practice.js (最终大头部固定版 - 重构版)
 import Dialog from '@vant/weapp/dialog/dialog';
 import Notify from '@vant/weapp/notify/notify';
-const { LEVEL_SYSTEM } = require('../../utils/level-data.js');
 const app = getApp();
+// 【引入 Service】
+const CultivationService = require('../../services/cultivation.service');
 
 Page({
   data: {
     pageClass: '',
     statusBarHeight: 0,
     notifyTop: 0,
+    
+    // 弹窗相关
     showCustomDialog: false,
     dialogTitle: '',
     dialogMessage: '',
     tempCultivationData: null,
+    
+    // 数据源
     activeTab: 'body',
     userCultivations: { body: [], mind: [], skill: [], wealth: [] },
     totalExpMap: { body: 0, mind: 0, skill: 0, wealth: 0 },
-    categoryMap: { body: '体修', mind: '心修', skill: '技修', wealth: '财修' },
+    
+    // 静态配置
+    categoryMap: { body: '体修', mind: '心修', skill: '术修', wealth: '财修' },
     categoryIconMap: { 
       body: 'gongfa-book-icon1.png', 
       mind: 'gongfa-book-icon2.png', 
       skill: 'gongfa-book-icon3.png', 
       wealth: 'gongfa-book-icon4.png' 
     },
+    
+    // 状态与动画
     isCultivating: false,
     showLevelUp: false,
     levelUpInfo: {
@@ -31,11 +40,18 @@ Page({
       description: '你的修为有了新的精进，对大道的理解更深了一层。' 
     },
     levelUpAnimation: {},
+     // 【新增】结算弹窗相关数据
+     showSettlement: false, // 控制弹窗显示
+     settlementInfo: {      // 弹窗显示的内容
+       exp: 0,
+       categoryName: '',
+       attrChanges: []      // 属性变化列表 [{label: '寿元', val: 0.005}, ...]
+     },
   },
+  
 
   onLoad(options) {
     const systemInfo = wx.getSystemInfoSync();
-    // 【修改】只设置 statusBarHeight
     this.setData({
       statusBarHeight: systemInfo.statusBarHeight
     });
@@ -44,116 +60,54 @@ Page({
     if (app.globalData.fontLoaded) { applyFont(); } 
     else { app.fontReadyCallback = app.fontReadyCallback ? app.fontReadyCallback + applyFont : applyFont; }
   },
+
   onReady() {
-    // 【新增】在页面渲染完成后，计算头部高度
     this.calculateHeaderHeight();
   },
   
-  // 【新增】计算并设置 Notify 的 top 值
   calculateHeaderHeight() {
     setTimeout(() => {
       const query = wx.createSelectorQuery().in(this);
-      // 只测量真正固定的 .custom-nav 的高度
       query.select('.custom-nav').boundingClientRect(res => {
         if (res && res.height) {
-          this.setData({
-            notifyTop: res.height
-          });
+          this.setData({ notifyTop: res.height });
         }
       }).exec();
     }, 100);
   },
+
   onShow() {
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().updateSelected('/pages/practice/practice');
     }
-    this.loadUserCultivations();
+    // 【核心修改】只负责刷新数据，不负责计算
+    this.refreshData();
   },
 
-  loadUserCultivations() {
-    const cultivations = wx.getStorageSync('userCultivations') || { body: [], mind: [], skill: [], wealth: [] };
-    this.setData({ userCultivations: cultivations });
-    this.calculateAllTotalExp();
-  },
-
-  calculateAllTotalExp() {
-    const cultivations = this.data.userCultivations;
+  /**
+   * 【核心重构】刷新页面数据
+   * 从 Service 获取最新的功法列表和经验统计
+   */
+  refreshData() {
+    // 1. 获取列表数据
+    const cultivations = CultivationService.getCultivationData();
+    
+    // 2. 获取各类总经验 (简单计算或让Service提供)
     const totalExpMap = {
-      body: this.calculateTotalExpForCategory(cultivations.body),
-      mind: this.calculateTotalExpForCategory(cultivations.mind),
-      skill: this.calculateTotalExpForCategory(cultivations.skill),
-      wealth: this.calculateTotalExpForCategory(cultivations.wealth),
+      body: CultivationService.calculateCategoryExp(cultivations.body),
+      mind: CultivationService.calculateCategoryExp(cultivations.mind),
+      skill: CultivationService.calculateCategoryExp(cultivations.skill),
+      wealth: CultivationService.calculateCategoryExp(cultivations.wealth),
     };
-    this.setData({ totalExpMap });
-  },
-  
-  /**
-   * 计算单个分类的累计修为
-   * 修正为累加 totalExpEarned 字段
-   */
-  calculateTotalExpForCategory(list) {
-    if (!list) return 0;
-    // 直接读取每个功法已经记录好的“功劳簿”，而不再进行实时计算
-    return list.reduce((sum, item) => sum + (item.totalExpEarned || 0), 0);
+
+    this.setData({ 
+      userCultivations: cultivations,
+      totalExpMap: totalExpMap
+    });
   },
 
-  /**
-   * 处理一次修炼的结果
-   * 修正为累加 totalExpEarned 字段
-   */
-  processCultivationResult(gongfa, category) {
-    const oldTotalExp = this.calculateTotalExpForAll();
-    
-    const cultivations = this.data.userCultivations;
-    const gongfaIndex = cultivations[category].findIndex(item => item.id === gongfa.id);
-    
-    if (gongfaIndex !== -1) {
-      // 1. 增加修炼次数
-      cultivations[category][gongfaIndex].count = (cultivations[category][gongfaIndex].count || 0) + 1;
-      
-      // 2. 累加“已获得的总经验”，这个值将不再受功法本身 exp 变化的影响
-      let currentTotalExp = cultivations[category][gongfaIndex].totalExpEarned || 0;
-      cultivations[category][gongfaIndex].totalExpEarned = currentTotalExp + gongfa.exp;
-    }
-    
-    wx.setStorageSync('userCultivations', cultivations);
-    
-    // --- 升级判断逻辑保持不变 ---
-    const newTotalExp = oldTotalExp + gongfa.exp;
-    const oldLevelInfo = this.findLevelInfoByExp(oldTotalExp);
-    const newLevelInfo = this.findLevelInfoByExp(newTotalExp);
-    
-    if (newLevelInfo.level > oldLevelInfo.level) {
-      const breakthroughDesc = newLevelInfo.breakthroughDesc || this.data.levelUpInfo.description;
-      this.setData({
-        'levelUpInfo.levelName': newLevelInfo.name,
-        'levelUpInfo.description': breakthroughDesc,
-        showLevelUp: true
-      });
-      
-      const animation = wx.createAnimation({ duration: 400, timingFunction: 'ease' });
-      wx.nextTick(() => {
-        animation.scale(1).opacity(1).step();
-        this.setData({ levelUpAnimation: animation.export() });
-      });
-    }  else {
-      Notify({
-        type: 'success',
-        message: `恭喜！获得 ${gongfa.exp} 点修为，对${this.data.categoryMap[category]}有所精进。`,
-        // 关键：指定在哪个 van-notify 组件上显示
-        selector: '#van-notify',
-        // 关键：指定组件所在的上下文，即当前页面
-        context: this,
-        top: this.data.notifyTop
-      });
-    }
-    this.loadUserCultivations();
-  },
+  // --- 交互逻辑 ---
 
-  // -------------------------------------------------------------------
-  // --- 【核心改造】到这里结束 ---
-  // -------------------------------------------------------------------
-  
   onTabChange(event) {
     this.setData({ activeTab: event.detail.name });
   },
@@ -171,44 +125,93 @@ Page({
   onDialogConfirm() {
     const { gongfa, category } = this.data.tempCultivationData;
     this.setData({ isCultivating: true });
+    
+    // 模拟修炼过程
     setTimeout(() => {
       this.setData({ isCultivating: false });
       this.processCultivationResult(gongfa, category);
     }, 2000);
   },
 
-  findLevelInfoByExp(totalExp) {
-    let accumulatedExp = 0;
-    for (let i = 0; i < LEVEL_SYSTEM.length; i++) {
-      const currentLevel = LEVEL_SYSTEM[i];
-      if (currentLevel.expToNext === Infinity) {
-        return currentLevel;
+  /**
+   * 【核心重构】处理修炼结果
+   * 调用 Service 执行业务逻辑，页面只负责展示结果
+   */
+  processCultivationResult(gongfa, category) {
+    // 1. 记录修炼前的等级 (用于判断升级)
+    const oldLevelInfo = CultivationService.getCurrentLevelInfo();
+
+    // 2. 调用 Service 执行修炼 (核心写操作)
+    const result = CultivationService.doPractice(gongfa.id, category);
+
+    if (result.success) { 
+      // 3. 刷新界面数据
+      this.refreshData();
+
+      // 4. 判断升级
+      const newLevelInfo = CultivationService.getCurrentLevelInfo();
+      if (newLevelInfo.level > oldLevelInfo.level) {
+        // --- 触发升级弹窗 ---
+        const breakthroughDesc = newLevelInfo.breakthroughDesc || this.data.levelUpInfo.description;
+        this.setData({
+          'levelUpInfo.levelName': newLevelInfo.name,
+          'levelUpInfo.description': breakthroughDesc,
+          showLevelUp: true
+        });
+        
+        // 播放升级动画
+        const animation = wx.createAnimation({ duration: 400, timingFunction: 'ease' });
+        wx.nextTick(() => {
+          animation.scale(1).opacity(1).step();
+          this.setData({ levelUpAnimation: animation.export() });
+        });
+      } else {
+         // 【修改】不再调用 Notify，而是显示结算弹窗
+         this.showSettlementModal(result.addedExp, category);
+        }
+      } else {
+        wx.showToast({ title: '修炼数据异常', icon: 'none' });
       }
-      if (totalExp < accumulatedExp + currentLevel.expToNext) {
-        return currentLevel;
-      }
-      accumulatedExp += currentLevel.expToNext;
-    }
-    return LEVEL_SYSTEM[LEVEL_SYSTEM.length - 1];
-  },
+    },
   
-  calculateTotalExpForAll() {
-    const cultivations = wx.getStorageSync('userCultivations') || { body: [], mind: [], skill: [], wealth: [] };
-    const bodyExp = this.calculateTotalExpForCategory(cultivations.body);
-    const mindExp = this.calculateTotalExpForCategory(cultivations.mind);
-    const skillExp = this.calculateTotalExpForCategory(cultivations.skill);
-    const wealthExp = this.calculateTotalExpForCategory(cultivations.wealth);
-    return bodyExp + mindExp + skillExp + wealthExp;
-  },
-
-  getRealmName(levelName) {
-    if (levelName.includes('初期') || levelName.includes('中期') || levelName.includes('后期')) {
-        return levelName.substring(0, 2);
-    }
-    if (levelName.includes('层')) return '练气';
-    return levelName;
-  },
-
+    // 【新增】显示结算弹窗
+    showSettlementModal(addedExp, category) {
+      // 1. 计算属性增量 (根据 Service 里的公式反推)
+      // 公式参考：寿元=Exp/1000, 其他五维=Exp/500
+      const changes = [];
+      
+      // 公共公式
+      const attrIncrement = (addedExp / 500).toFixed(2); // 属性增加量
+      const lifeIncrement = (addedExp / 1000).toFixed(3); // 寿元增加量
+  
+      if (category === 'body') {
+        changes.push({ label: '寿元', val: lifeIncrement });
+        changes.push({ label: '体质', val: attrIncrement });
+      } else if (category === 'mind') {
+        changes.push({ label: '寿元', val: lifeIncrement });
+        changes.push({ label: '心境', val: attrIncrement });
+      } else if (category === 'skill') {
+        changes.push({ label: '智慧', val: attrIncrement });
+      } else if (category === 'wealth') {
+        changes.push({ label: '财富', val: attrIncrement });
+      }
+  
+      // 2. 设置数据并显示
+      this.setData({
+        showSettlement: true,
+        settlementInfo: {
+          exp: addedExp,
+          categoryName: this.data.categoryMap[category],
+          attrChanges: changes
+        }
+      });
+    },
+  
+    // 【新增】关闭结算弹窗
+    closeSettlement() {
+      this.setData({ showSettlement: false });
+    },
+  // --- 升级弹窗关闭逻辑 (保持不变) ---
   closeLevelUp() {
     const animation = wx.createAnimation({ duration: 300, timingFunction: 'ease' });
     animation.scale(0.5).opacity(0).step();
@@ -216,19 +219,12 @@ Page({
     
     setTimeout(() => {
       this.setData({ showLevelUp: false });
-      wx.setTabBarBadge({ index: 1, text: ' ' }); 
-      setTimeout(() => { wx.removeTabBarBadge({ index: 1 }); }, 500);
+      // 移除 TabBar 红点逻辑 (如果之前有的话)
+      // wx.removeTabBarBadge({ index: 1 }); 
     }, 300);
   },
 
   navigateToSettings() {
     wx.switchTab({ url: '/pages/settings/settings' });
-  },
-
-  uuid() {
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
-      return v.toString(16);
-    });
   }
 })
