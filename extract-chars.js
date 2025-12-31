@@ -13,7 +13,7 @@ const subsetFontDir = path.join(projectDir, 'fonts');
 const subsetFontFileName = 'SIMLI_subset.ttf';
 const subsetFontPath = path.join(subsetFontDir, subsetFontFileName);
 
-const outputFontDataPath = path.join(projectDir, 'utils', 'font-data.js'); // Base64输出路径
+const outputFontDataPath = path.join(projectDir, 'pkg_assets', 'font-data.js'); // Base64输出路径
 // --- 配置区结束 ---
 
 

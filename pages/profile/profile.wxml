@@ -1,24 +1,26 @@
-<!-- pages/profile/profile.wxml (最终修复所有错误版) -->
+<!-- pages/profile/profile.wxml -->
 <view class="page-container {{ pageClass }}">
 
 <!-- 1. 顶部固定区 -->
 <view class="top-section" style="padding-top: {{ statusBarHeight }}px;">
   <view class="custom-nav">
+    <!-- 玩法说明入口 -->
+    <view class="nav-left" bind:tap="onShowHelp">
+      <van-icon name="info-o" size="20px" color="#3a3a3a" />
+    </view>
     <view class="nav-title">我的洞府</view>
+    <view class="nav-right-placeholder"></view>
   </view>
   
-  <!-- 境界与修为面板 -->
+  <!-- 面板区域 -->
   <view class="panel realm-panel">
-    <!-- 【修复】使用 image 标签作为背景 -->
-    <image class="panel-bg-img" src="/images/panel-bg-realm.png" mode="stretch" />
-    <!-- 内容容器 -->
+    <image class="panel-bg-img" src="/images/panel-bg-realm.png" mode="scaleToFill" />
     <view class="panel-content">
       <view class="realm-name">{{ userInfo.levelName }}</view>
       <view class="exp-bar-wrapper">
         <text class="exp-label">修为</text>
         <view class="progress-bar-container">
-          <!-- 【修复】使用 image 标签作为背景 -->
-          <image class="panel-bg-img" src="/images/progress-bar-bg.png" mode="stretch" />
+          <image class="panel-bg-img" src="/images/progress-bar-bg.png" mode="scaleToFill" />
           <view class="progress-bar-portion" style="width: {{ userInfo.expPercentage }};"></view>
           <text class="exp-value-inside">{{ userInfo.currentExp }}/{{ userInfo.expToNext }}</text>
         </view>
@@ -26,42 +28,23 @@
     </view>
   </view>
 
-  <!-- 五维属性面板 -->
   <view class="panel attributes-panel">
-    <!-- 【修复】使用 image 标签作为背景 -->
-    <image class="panel-bg-img" src="/images/panel-bg-attributes.png" mode="stretch" />
-    <!-- 内容容器 -->
+    <image class="panel-bg-img" src="/images/panel-bg-attributes.png" mode="scaleToFill" />
     <view class="panel-content">
       <view class="attr-row">
-        <view class="attr-item">
-          <text class="attr-label">寿元:</text>
-          <text class="attr-value">{{ userAttributes.shouYuan }}</text>
-        </view>
-        <view class="attr-item">
-          <text class="attr-label">体质:</text>
-          <text class="attr-value">{{ userAttributes.tiZhi }}</text>
-        </view>
-        <view class="attr-item">
-          <text class="attr-label">心境:</text>
-          <text class="attr-value">{{ userAttributes.xinJing }}</text>
-        </view>
+        <view class="attr-item"><text class="attr-label">寿元:</text><text class="attr-value">{{ userAttributes.shouYuan }}</text></view>
+        <view class="attr-item"><text class="attr-label">体质:</text><text class="attr-value">{{ userAttributes.tiZhi }}</text></view>
+        <view class="attr-item"><text class="attr-label">心境:</text><text class="attr-value">{{ userAttributes.xinJing }}</text></view>
       </view>
       <view class="attr-row">
-        <view class="attr-item">
-          <text class="attr-label">智慧:</text>
-          <text class="attr-value">{{ userAttributes.zhiHui }}</text>
-        </view>
-        <view class="attr-item">
-          <text class="attr-label">财富:</text>
-          <text class="attr-value">{{ userAttributes.caiFu }}</text>
-        </view>
+        <view class="attr-item"><text class="attr-label">智慧:</text><text class="attr-value">{{ userAttributes.zhiHui }}</text></view>
+        <view class="attr-item"><text class="attr-label">财富:</text><text class="attr-value">{{ userAttributes.caiFu }}</text></view>
       </view>
     </view>
   </view>
 
-  <!-- 每日语录面板 (此面板结构已符合规范，无需修改) -->
   <view class="panel quote-panel">
-    <image class="quote-panel-bg" src="/images/panel-bg-quote-stretchable.png" mode="widthFix" />
+    <image class="quote-panel-bg" src="/images/panel-bg-quote-stretchable.png" mode="scaleToFill" />
     <view class="quote-content-wrapper">
       <image class="quote-icon" src="/images/icon-yinyang.png" />
       <text class="quote-text">{{ dailyQuote }}</text>
@@ -79,15 +62,71 @@
 <!-- 3. 底部固定区 -->
 <view class="bottom-section">
   <view class="action-button journal-btn" bind:tap="navigateToJournal">
-    <!-- 【修复】使用 image 标签作为背景 -->
-    <image class="panel-bg-img" src="/images/btn-bg-ink.png" mode="stretch" />
+    <image class="panel-bg-img" src="/images/btn-bg-ink.png" mode="scaleToFill" />
     <text class="btn-text">感悟日记</text>
   </view>
   <view class="action-button review-btn" bind:tap="navigateToReview">
-    <!-- 【修复】使用 image 标签作为背景 -->
-    <image class="panel-bg-img" src="/images/btn-bg-ink.png" mode="stretch" />
+    <image class="panel-bg-img" src="/images/btn-bg-ink.png" mode="scaleToFill" />
     <text class="btn-text">修炼回顾</text>
   </view>
 </view>
 
 </view>
+
+<!-- 【玩法说明弹窗】 -->
+<van-popup 
+  show="{{ showHelp }}" 
+  bind:close="onCloseHelp"
+  custom-style="background: transparent;"
+  z-index="1000"
+  close-on-click-overlay="{{ false }}"
+>
+  <view class="help-container">
+    
+    <!-- 1. 关闭按钮 (浮在右上角) -->
+    <view class="help-close-area" catch:tap="onCloseHelp">
+      <!-- 还是用你之前的关闭图片，或者换回 icon 都可以 -->
+      <image class="help-close-img" src="/images/icon-close.png" mode="aspectFit" />
+    </view>
+
+    <!-- 2. 轮播区域 -->
+    <swiper 
+      class="help-swiper" 
+      current="{{ currentHelpIndex }}"
+      bindchange="onHelpSwiperChange"
+      indicator-dots="{{ false }}" 
+      circular="{{ false }}"
+    >
+      <block wx:for="{{ helpImages }}" wx:key="*this">
+        <swiper-item class="help-item">
+          <image src="{{ item }}" class="help-image" mode="widthFix" />
+        </swiper-item>
+      </block>
+    </swiper>
+
+    <!-- 3. 底部控制栏 (现在是浮在图片上的) -->
+    <view class="help-controls-overlay">
+      <!-- 上一张 -->
+      <view 
+        class="control-btn prev {{ currentHelpIndex === 0 ? 'disabled' : '' }}" 
+        catch:tap="onHelpPrev"
+      >
+        <van-icon name="arrow-left" size="20px" color="#555" />
+      </view>
+
+      <!-- 页码 -->
+      <view class="page-indicator">
+        {{ currentHelpIndex + 1 }} / {{ helpImages.length }}
+      </view>
+
+      <!-- 下一张 -->
+      <view 
+        class="control-btn next {{ currentHelpIndex === helpImages.length - 1 ? 'disabled' : '' }}" 
+        catch:tap="onHelpNext"
+      >
+        <van-icon name="arrow" size="20px" color="#555" />
+      </view>
+    </view>
+
+  </view>
+</van-popup>

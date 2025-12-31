@@ -35,6 +35,11 @@
         "pages/list/list",
         "pages/edit/edit"
       ]
+    },
+    {
+      "root": "pkg_assets",
+      "name": "assets",
+      "pages": [] 
     }
   ],
   "lazyCodeLoading": "requiredComponents",

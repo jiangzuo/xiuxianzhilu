@@ -21,21 +21,52 @@ page {
 /* --- 3. 顶部固定区 --- */
 .top-section {
   flex-shrink: 0;
-  padding: 0 48rpx;
+  /* 这里的 padding 决定了图标距离屏幕边缘的距离 */
+  padding: 0 32rpx; 
   z-index: 10;
   background-color: #ECE9DD;
 }
+
+/* 【核心修复】自定义导航栏布局 */
 .custom-nav {
   height: 44px;
+  width: 100%;
+  position: relative; /* 作为坐标系基准 */
   display: flex;
   align-items: center;
-  justify-content: center;
-  position: relative;
+  /* 移除 justify-content，改用绝对定位 */
 }
-.nav-title { 
-  font-size: 36rpx; 
-  font-weight: 500; 
+
+/* 1. 左侧图标：强制绝对定位在最左侧 */
+.nav-left {
+  position: absolute;
+  left: 16rpx;  /* 紧贴父容器左侧 */
+  top: 0;
+  height: 100%;
+  width: 80rpx; /* 增大点击热区 */
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* 图标靠左对齐 */
+  z-index: 20; /* 确保层级高，可点击 */
 }
+
+/* 2. 中间标题：强制绝对定位在正中心 */
+.nav-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%); /* 经典的绝对居中写法 */
+  font-size: 36rpx;
+  font-weight: 500;
+  color: #3a3a3a;
+  z-index: 10;
+  white-space: nowrap; /* 防止标题换行 */
+}
+
+/* 右侧占位可以删掉或者留着，因为用了绝对定位，它已经不影响布局了 */
+.nav-right-placeholder {
+  display: none; 
+}
+
 
 /* --- 面板通用样式 --- */
 .panel {
@@ -234,4 +265,98 @@ page {
 .btn-text {
   position: relative;
   z-index: 2; /* 确保文字在背景图之上 */
+}
+
+/* === 玩法说明弹窗样式优化 === */
+/* =========================== */
+
+.help-container {
+  width: 600rpx;
+  position: relative;
+  /* 移除底部的 padding-bottom，因为控制栏悬浮了 */
+  border-radius: 24rpx;
+  overflow: hidden; 
+  /* 背景透明，因为图片已经撑满了 */
+  background-color: transparent; 
+}
+
+/* 关闭按钮区域 (保持悬浮) */
+.help-close-area {
+  position: absolute;
+  top: 20rpx;
+  right: 20rpx;
+  width: 60rpx;
+  height: 60rpx;
+  z-index: 20; /* 确保在最上层 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.help-close-img {
+  width: 60rpx; /* 稍微调小一点精致些 */
+  height: 60rpx;
+  opacity: 0.6;
+}
+
+/* 轮播图容器 */
+.help-swiper {
+  width: 100%;
+  /* 高度依然需要指定，根据你的图片比例设定，例如 3:4 */
+  height: 900rpx; 
+  background-color: #ECE9DD;
+}
+
+.help-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* --- 【核心修改】悬浮底部控制栏 --- */
+.help-controls-overlay {
+  position: absolute; /* 绝对定位 */
+  bottom: 40rpx;      /* 距离底部的位置 */
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center; /* 整体居中 */
+  align-items: center;
+  gap: 60rpx; /* 按钮和页码之间的间距 */
+  z-index: 20; /* 浮在图片上面 */
+}
+
+/* 圆形按钮容器 */
+.control-btn {
+  width: 70rpx;
+  height: 70rpx;
+  border-radius: 50%;
+  /* 半透明白底，制造磨砂感，防止背景干扰 */
+  background-color: rgba(187, 211, 171, 0.596);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.1);
+  transition: all 0.2s;
+}
+
+.control-btn:active {
+  transform: scale(0.9);
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+/* 禁用状态 */
+.control-btn.disabled {
+  opacity: 0; /* 第一页/最后一页时直接隐藏按钮，视觉更干净 */
+  pointer-events: none;
+}
+
+/* 页码数字 */
+.page-indicator {
+  font-size: 28rpx;
+  /* 颜色深一点，确保在浅绿色背景上可见 */
+  color: #5c5241; 
+  font-weight: 500;
+  font-family: sans-serif;
+  letter-spacing: 4rpx;
 }

@@ -82,7 +82,7 @@ const CultivationService = {
       const level = LEVEL_SYSTEM[i];
       if (level.expToNext === Infinity) {
         // 【修复 1】这里改为 expPercentage
-        return { ...level, currentExp: 0, expPercentage: '100%' };
+        return { ...level, levelName: level.name,currentExp: 0, expPercentage: '100%' };
       }
       
       if (totalExp < accumulatedExp + level.expToNext) {
@@ -90,6 +90,7 @@ const CultivationService = {
         const percentage = Math.min((currentExp / level.expToNext) * 100, 100).toFixed(1);
         return {
           ...level,
+          levelName: level.name,
           currentExp,
           // 【修复 2】这里改为 expPercentage，与 WXML 对应
           expPercentage: percentage + '%' 
@@ -98,7 +99,7 @@ const CultivationService = {
       accumulatedExp += level.expToNext;
     }
     // 【修复 3】保底返回也要改
-    return { ...LEVEL_SYSTEM[LEVEL_SYSTEM.length - 1], expPercentage: '100%' };
+    return { ...LEVEL_SYSTEM[LEVEL_SYSTEM.length - 1], levelName: maxLevel.name,expPercentage: '100%' };
   },
 
   /**
