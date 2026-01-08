@@ -1,0 +1,72 @@
+<!-- pages/chat/chat.wxml -->
+<view class="page-container">
+
+<!-- 1. 顶部导航栏 (完全复用日记页结构) -->
+<view class="custom-nav" style="padding-top: {{statusBarHeight}}px;">
+  <view class="nav-left" bindtap="goBack">
+    <van-icon name="arrow-left" size="22px" color="#3a3a3a" />
+  </view>
+  <!-- 标题强制隶书 -->
+  <view class="nav-center">
+      <image class="header-avatar" src="/images/spirit-icon.png" mode="aspectFit" />
+      <text class="font-lishu">器灵</text>
+    </view>
+  <view class="nav-right"></view>
+</view>
+
+<!-- 2. 中间内容区 (Flex: 1 自适应高度) -->
+<view class="main-content">
+  <scroll-view 
+    class="chat-scroll" 
+    scroll-y 
+    scroll-into-view="{{scrollToViewId}}"
+    scroll-with-animation="{{true}}"
+    bindtap="hideKeyboard"
+  >
+    <view class="padding-top"></view>
+
+    <block wx:for="{{msgList}}" wx:key="id">
+      <!-- 时间戳 -->
+      <view class="time-stamp" wx:if="{{item.showTime}}">{{item.timeStr}}</view>
+
+      <!-- 消息行 -->
+      <view class="msg-row {{item.role === 'user' ? 'row-user' : 'row-ai'}}" id="msg-{{index}}">
+        <!-- 气泡 (内容强制系统字体) -->
+        <view class="bubble font-system">
+          <text user-select>{{item.content}}</text>
+          <view wx:if="{{item.isLoading}}" class="loading-dots">...</view>
+        </view>
+      </view>
+    </block>
+
+    <!-- 底部锚点 -->
+    <view id="bottom-anchor" style="height: 20rpx;"></view>
+  </scroll-view>
+</view>
+
+<!-- 3. 底部输入区 (Flex 底部固定项) -->
+<!-- 通过 padding-bottom 适配键盘高度 -->
+<view class="footer-input" style="padding-bottom: {{keyboardHeight > 0 ? keyboardHeight : (isIphoneX ? 34 : 20)}}px;">
+  <view class="input-box">
+    <!-- 输入框强制系统字体 -->
+    <input 
+      class="input-field font-system"
+      value="{{inputText}}" 
+      placeholder="与银月神识传音..." 
+      placeholder-class="input-placeholder"
+      confirm-type="send"
+      confirm-hold="{{true}}"
+      adjust-position="{{false}}"
+      focus="{{isFocus}}"
+      bindfocus="onInputFocus" 
+      bindblur="onInputBlur"
+      bindconfirm="sendMessage"
+      bindinput="onInputChange"
+    />
+    <view class="send-icon" bindtap="sendMessage">
+      <van-icon name="guide-o" size="26px" color="{{inputText ? '#c0a36a' : '#ccc'}}" />
+    </view>
+  </view>
+</view>
+
+</view>

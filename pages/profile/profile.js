@@ -20,8 +20,18 @@ Page({
       '/images/guide-1.png', 
       '/images/guide-2.png', 
       '/images/guide-3.png'
-    ],
+    ]
   },
+  // 【新增】跳转到器灵聊天页
+  navigateToChat() {
+    wx.navigateTo({
+      url: '/pages/chat/chat',
+      fail: (err) => {
+        console.error('跳转失败，请检查 app.json 是否配置了页面', err);
+      }
+    });
+  },
+
 
   onLoad(options) {
     const systemInfo = wx.getSystemInfoSync();

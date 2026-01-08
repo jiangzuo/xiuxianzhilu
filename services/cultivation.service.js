@@ -1,6 +1,7 @@
 // services/cultivation.service.js
 const Cache = require('../utils/cache-manager');
 const { LEVEL_SYSTEM } = require('../utils/level-data');
+const ChatService = require('./chat.service'); // 【新增】引入聊天服务用于插入系统事件
 
 // 辅助：生成UUID
 const uuid = () => {
@@ -101,6 +102,13 @@ const CultivationService = {
     // 【修复 3】保底返回也要改
     return { ...LEVEL_SYSTEM[LEVEL_SYSTEM.length - 1], levelName: maxLevel.name,expPercentage: '100%' };
   },
+ /**
+   * 获取最近的修炼日志 (用于 AI 记忆)
+   */
+  getRecentLogs(limit = 10) {
+    const logs = wx.getStorageSync('practice_logs') || [];
+    return logs.slice(0, limit);
+  },
 
   /**
    * 执行修炼
@@ -129,6 +137,12 @@ const CultivationService = {
     // 2. 写入缓存 (内存+异步磁盘)
     data[category][index] = item;
     Cache.set('userCultivations', data);
+    // 3. 【新增】记录修炼日志 (用于 AI 的 recent_activity)
+    this._addLog(item.name, category, finalExp);
+
+    // 4. 【新增】向聊天记录插入“系统事件” (用于 AI 上下文)
+    // 格式：[系统事件]：用户完成了健身30分钟，获得修为+5。
+    ChatService.saveMessage('system', `用户完成了${item.name}，获得修为+${finalExp}。`);  
 
     return {
       success: true,
@@ -136,6 +150,28 @@ const CultivationService = {
       gongfaName: item.name,
       newCount: item.count
     };
+  },
+   /**
+   * 内部方法：添加日志
+   */
+  _addLog(actionName, type, exp) {
+    let logs = wx.getStorageSync('practice_logs') || [];
+    const now = new Date();
+    
+    const newLog = {
+      timestamp: now.getTime(),
+      dateStr: now.toDateString(), // 用于简单判断日期
+      action: actionName,
+      type: type,
+      exp: exp
+    };
+
+    // 把最新的插到最前面
+    logs.unshift(newLog);
+    // 只保留最近 50 条
+    if (logs.length > 50) logs = logs.slice(0, 50);
+    
+    wx.setStorageSync('practice_logs', logs);
   }
 };
 

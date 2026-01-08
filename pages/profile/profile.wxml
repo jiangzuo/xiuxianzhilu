@@ -71,6 +71,13 @@
   </view>
 </view>
 
+ <!-- 【新增】器灵悬浮入口 -->
+ <view class="spirit-float-btn" bind:tap="navigateToChat">
+    
+    <!-- 器灵图标 -->
+    <image class="spirit-img" src="/images/spirit-icon.png" mode="aspectFit" />
+  </view>
+
 </view>
 
 <!-- 【玩法说明弹窗】 -->

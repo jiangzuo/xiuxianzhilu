@@ -360,3 +360,34 @@ page {
   font-family: sans-serif;
   letter-spacing: 4rpx;
 }
+
+/* === 器灵悬浮入口样式 === */
+/* =========================== */
+
+.spirit-float-btn {
+  position: fixed;
+  right: 30rpx;
+  /* 距离底部的高度，避开 TabBar 和底部的“感悟日记”按钮 */
+  bottom: 440rpx; 
+  width: 200rpx;
+  height: 200rpx;
+  z-index: 100;
+  
+  /* 添加上下浮动动画 */
+  animation: floatSpirit 3s ease-in-out infinite;
+}
+
+.spirit-img {
+  width: 100%;
+  height: 100%;
+  /* 给个发光效果，更有灵性 */
+  filter: drop-shadow(0 0 10rpx rgba(192, 163, 106, 0.6));
+}
+
+
+/* 浮动动画关键帧 */
+@keyframes floatSpirit {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); } /* 上浮 10px */
+  100% { transform: translateY(0px); }
+}

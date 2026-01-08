@@ -1,5 +1,7 @@
 // app.js (最终完整版)
-const CacheManager = require('./utils/cache-manager'); // 【新增】引入缓存管理器
+const CacheManager = require('./utils/cache-manager');
+const MemoryService = require('./services/memory.service');
+const AIService = require('./services/ai.service');
 
 App({
   globalData: {
@@ -14,6 +16,7 @@ App({
     // 2. 加载自定义字体
     this.loadCustomFont();
   },
+  
 
   loadCustomFont() {
     const that = this;

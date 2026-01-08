@@ -1,0 +1,190 @@
+/* pages/chat/chat.wxss */
+
+/* =========================== */
+/* 1. 页面布局框架 (参考 Journal) */
+/* =========================== */
+page {
+  background-color: #ECE9DD;
+  height: 100vh;
+  overflow: hidden; /* 禁止整页滚动 */
+}
+
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+}
+
+/* =========================== */
+/* 2. 顶部导航栏 (Fixed Height) */
+/* =========================== */
+.custom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px; /* 标准导航栏高度 */
+  padding: 0 32rpx;
+  flex-shrink: 0; /* 禁止被压缩 */
+  background-color: #ECE9DD;
+  z-index: 100;
+  box-shadow: 0 1rpx 0 rgba(0,0,0,0.05);
+}
+
+.nav-left, .nav-right {
+  width: 60rpx; /* 稍微宽一点方便点击 */
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* 左侧靠左 */
+.nav-left { justify-content: flex-start; }
+
+/* 中间标题 */
+.nav-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 36rpx; /* 标题字号 */
+  color: #3a3a3a;
+  font-weight: 500;
+  letter-spacing: 2rpx;
+}
+.header-avatar {
+  width: 60rpx;
+  height: 60rpx;
+  margin-right: 12rpx; /* 图片和文字的间距 */
+  border-radius: 50%;
+  border: 1rpx solid rgba(192, 163, 106, 0.3); /* 淡金色边框，增加精致感 */
+}
+
+/* 强制隶书工具类 */
+.font-lishu {
+  font-family: 'LishuFont', sans-serif !important;
+}
+
+/* =========================== */
+/* 3. 中间内容区 (Flex Item) */
+/* =========================== */
+.main-content {
+  flex: 1; /* 占据剩余空间 */
+  width: 100%;
+  min-height: 0; /* 【关键】防止 Flex 子元素内容溢出无法滚动 */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-scroll {
+  height: 100%; /* 撑满 main-content */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.padding-top { height: 30rpx; }
+
+/* --- 聊天气泡样式 --- */
+.msg-row {
+  display: flex;
+  width: 100%;
+  padding: 0 32rpx;
+  margin-bottom: 30rpx;
+  box-sizing: border-box;
+}
+
+.bubble {
+  max-width: 80%;
+  padding: 24rpx 32rpx;
+  border-radius: 20rpx;
+  font-size: 30rpx;
+  line-height: 1.6;
+  position: relative;
+  word-break: break-all;
+  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.03);
+}
+
+/* 强制系统字体工具类 */
+.font-system, 
+.font-system text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Segoe UI, Arial, Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft Yahei', sans-serif !important;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* 时间戳 */
+.time-stamp {
+  text-align: center;
+  font-size: 22rpx;
+  color: #999;
+  margin-bottom: 24rpx;
+  font-family: -apple-system, sans-serif !important; 
+}
+
+/* 用户气泡 */
+.row-user { justify-content: flex-end; }
+.row-user .bubble {
+  background-color: #c0a36a;
+  color: #fff;
+  border-top-right-radius: 4rpx;
+}
+
+/* AI 气泡 */
+.row-ai { justify-content: flex-start; }
+.row-ai .bubble {
+  background-color: #fff;
+  color: #333;
+  border-top-left-radius: 4rpx;
+}
+
+/* Loading */
+.loading-dots {
+  display: inline-block;
+  margin-left: 8rpx;
+  color: #c0a36a;
+  font-weight: bold;
+}
+
+/* =========================== */
+/* 4. 底部输入栏 (Footer) */
+/* =========================== */
+.footer-input {
+  flex-shrink: 0; /* 禁止压缩 */
+  background-color: #f7f7f5;
+  padding-top: 20rpx;
+  padding-left: 32rpx;
+  padding-right: 32rpx;
+  /* padding-bottom 由内联样式动态控制 */
+  border-top: 1rpx solid rgba(0,0,0,0.05);
+  transition: padding-bottom 0.1s ease-out; /* 键盘动画 */
+  z-index: 200;
+}
+
+.input-box {
+  background-color: #fff;
+  border-radius: 40rpx;
+  padding: 18rpx 24rpx;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+  margin-bottom: 20rpx; /* 稍微留点底边距 */
+}
+
+.input-field {
+  flex: 1;
+  height: 50rpx;
+  min-height: 50rpx;
+  font-size: 30rpx;
+  margin-right: 16rpx;
+  color: #333;
+}
+
+.send-icon {
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

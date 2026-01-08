@@ -3,7 +3,8 @@
     "pages/splash/splash",
     "pages/profile/profile",
     "pages/practice/practice",
-    "pages/settings/settings"
+    "pages/settings/settings",
+    "pages/chat/chat"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -39,7 +40,7 @@
     {
       "root": "pkg_assets",
       "name": "assets",
-      "pages": [] 
+      "pages": []
     }
   ],
   "lazyCodeLoading": "requiredComponents",
