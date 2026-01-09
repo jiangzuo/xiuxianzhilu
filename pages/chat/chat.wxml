@@ -52,7 +52,7 @@
     <input 
       class="input-field font-system"
       value="{{inputText}}" 
-      placeholder="与银月神识传音..." 
+      placeholder="与器灵神识传音..." 
       placeholder-class="input-placeholder"
       confirm-type="send"
       confirm-hold="{{true}}"

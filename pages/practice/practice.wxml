@@ -68,7 +68,7 @@
   <view class="loading-content">
     <view class="loading-text">修炼中...</view>
     <view class="loading-bar">
-      <view class="loading-bar-inner" style="animation-duration: 2s;"></view>
+      <view class="loading-bar-inner" style="animation-duration: 1.5s;"></view>
     </view>
   </view>
 </view>

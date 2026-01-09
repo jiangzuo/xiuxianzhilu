@@ -20,6 +20,9 @@ Page({
     // 状态
     isFocus: false,
     isResponding: false,
+    
+    // 计数器 (用于触发记忆分析)
+    msgCount: 0 
   },
 
   onLoad() {
@@ -35,12 +38,15 @@ Page({
     this.initHistory();
   },
 
-  // --- 【修改点 1】加载历史时过滤系统消息 ---
+  // 页面卸载时触发记忆整理
+  onUnload() {
+    MemoryService.checkAndUpdateMemory();
+  },
+
+  // --- 加载历史 ---
   initHistory() {
-    // 获取最近 20 条，但可能包含 system 消息
-    const history = ChatService.getHistory(50); // 多取一点，防止过滤后不够
-    
-    // 过滤掉 role 为 'system' 的消息，只显示 user 和 assistant
+    // 获取最近 50 条，过滤掉 system 消息
+    const history = ChatService.getHistory(50);
     const visibleHistory = history.filter(msg => msg.role !== 'system');
     
     // 截取最近 20 条显示
@@ -55,7 +61,7 @@ Page({
     
     this.setData({ msgList: displayList });
     
-    // 延迟滚动到底部，确保渲染完成
+    // 延迟滚动到底部
     setTimeout(() => {
       this.scrollToBottom();
     }, 200);
@@ -89,8 +95,6 @@ Page({
     this.setData({ inputText: e.detail.value });
   },
 
-  // --- 【修改点 2】优化滚动逻辑 ---
-  // 使用 setData 回调和 nextTick 确保滚动生效
   scrollToBottom() {
     this.setData({ scrollToViewId: '' }, () => {
       wx.nextTick(() => {
@@ -103,6 +107,7 @@ Page({
 
   sendMessage() {
     const text = this.data.inputText.trim();
+    // 防止为空或正在回复中
     if (!text || this.data.isResponding) return;
 
     // 1. 清空输入框
@@ -123,20 +128,27 @@ Page({
     };
     this.appendMessage(aiMsgPlaceholder);
 
-    // 4. 调用 AI
+    // 4. 组装 Prompt
     const requestMsgs = MemoryService.buildRequestMessages(text);
     let fullContent = '';
 
+    // 5. 发送流式请求
     AIService.sendMessageStream(
       requestMsgs,
       (chunk) => {
+        // 收到数据块
         fullContent += chunk;
         this.updateAiMessage(aiMsgId, fullContent, true);
       },
       () => {
+        // 完成
         ChatService.saveMessage('assistant', fullContent);
         this.updateAiMessage(aiMsgId, fullContent, false);
         this.setData({ isResponding: false });
+        
+        // 【新增】对话结束，尝试触发后台记忆整理
+        // 这里只是检查是否满足条件(比如满10条)，满足则触发，不阻塞UI
+        MemoryService.checkAndUpdateMemory(); 
       }
     );
   },
@@ -149,11 +161,10 @@ Page({
     
     list.push(msg);
     this.setData({ msgList: list }, () => {
-      this.scrollToBottom(); // 添加消息后立即滚动
+      this.scrollToBottom();
     });
   },
 
-  // --- 【修改点 3】AI 打字过程中自动滚动 ---
   updateAiMessage(id, content, isLoading) {
     const list = this.data.msgList;
     const target = list.find(m => m.id === id);
@@ -162,8 +173,7 @@ Page({
       target.isLoading = isLoading;
       
       this.setData({ msgList: list }, () => {
-        // 只有在 isLoading (打字中) 的时候，才需要频繁滚动
-        // 这样当 AI 回复很长时，屏幕会自动往上顶，始终显示最新一行
+        // 打字过程中持续滚动
         if (isLoading) {
            this.scrollToBottom();
         }

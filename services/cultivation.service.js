@@ -1,9 +1,8 @@
 // services/cultivation.service.js
 const Cache = require('../utils/cache-manager');
 const { LEVEL_SYSTEM } = require('../utils/level-data');
-const ChatService = require('./chat.service'); // 【新增】引入聊天服务用于插入系统事件
+// 注意：这里不引入 ChatService 避免循环引用，只负责写 Storage
 
-// 辅助：生成UUID
 const uuid = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
     var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
@@ -12,56 +11,31 @@ const uuid = () => {
 };
 
 const CultivationService = {
-  /**
-   * 获取所有修炼数据 (包含初始化逻辑)
-   */
+  // ... (getCultivationData, calculateCategoryExp, calculateAttributes 保持不变) ...
   getCultivationData() {
     let data = Cache.get('userCultivations');
-    
-    // 如果缓存不存在，或者数据结构不对，则进行初始化
     if (!data || typeof data !== 'object') {
       data = { body: [], mind: [], skill: [], wealth: [] };
-      
-      // 【修改点】默认初始化一个“散步30分钟”的功法
-      // 对应 gongfa-data.js 中：散步(神行术) -> 30分钟 -> 5 exp
-      data.body.push({ 
-        id: uuid(), 
-        name: '散步 30分钟', 
-        exp: 5, 
-        count: 0, 
-        totalExpEarned: 0 
-      });
-      
+      // 初始化默认功法
+      data.body.push({ id: uuid(), name: '散步 30分钟', exp: 5, count: 0, totalExpEarned: 0 });
       Cache.set('userCultivations', data);
     }
-
-    // 容错处理：防止旧用户缺少某个分类字段
-    if (!data.body) data.body = [];
-    if (!data.mind) data.mind = [];
-    if (!data.skill) data.skill = [];
-    if (!data.wealth) data.wealth = [];
-
+    // 容错
+    ['body', 'mind', 'skill', 'wealth'].forEach(k => { if(!data[k]) data[k] = []; });
     return data;
   },
 
-  /**
-   * 计算某分类的总经验
-   */
   calculateCategoryExp(list) {
     if (!list) return 0;
     return list.reduce((sum, item) => sum + (item.totalExpEarned || 0), 0);
   },
 
-  /**
-   * 计算五维属性
-   */
   calculateAttributes() {
     const data = this.getCultivationData();
     const bodyExp = this.calculateCategoryExp(data.body);
     const mindExp = this.calculateCategoryExp(data.mind);
     const skillExp = this.calculateCategoryExp(data.skill);
     const wealthExp = this.calculateCategoryExp(data.wealth);
-
     return {
       shouYuan: (80 + (bodyExp / 1000) + (mindExp / 1000)).toFixed(2),
       tiZhi: (50 + (bodyExp / 500)).toFixed(2),
@@ -72,20 +46,14 @@ const CultivationService = {
     };
   },
 
-   /**
-   * 获取当前境界信息
-   */
   getCurrentLevelInfo() {
     const { totalExp } = this.calculateAttributes();
     let accumulatedExp = 0;
-    
     for (let i = 0; i < LEVEL_SYSTEM.length; i++) {
       const level = LEVEL_SYSTEM[i];
       if (level.expToNext === Infinity) {
-        // 【修复 1】这里改为 expPercentage
-        return { ...level, levelName: level.name,currentExp: 0, expPercentage: '100%' };
+        return { ...level, levelName: level.name, currentExp: 0, expPercentage: '100%' };
       }
-      
       if (totalExp < accumulatedExp + level.expToNext) {
         const currentExp = totalExp - accumulatedExp;
         const percentage = Math.min((currentExp / level.expToNext) * 100, 100).toFixed(1);
@@ -93,56 +61,40 @@ const CultivationService = {
           ...level,
           levelName: level.name,
           currentExp,
-          // 【修复 2】这里改为 expPercentage，与 WXML 对应
-          expPercentage: percentage + '%' 
+          expPercentage: percentage + '%'
         };
       }
       accumulatedExp += level.expToNext;
     }
-    // 【修复 3】保底返回也要改
-    return { ...LEVEL_SYSTEM[LEVEL_SYSTEM.length - 1], levelName: maxLevel.name,expPercentage: '100%' };
+    const max = LEVEL_SYSTEM[LEVEL_SYSTEM.length - 1];
+    return { ...max, levelName: max.name, expPercentage: '100%' };
   },
- /**
-   * 获取最近的修炼日志 (用于 AI 记忆)
-   */
+
+  // --- 【新增】获取最近修炼日志 ---
   getRecentLogs(limit = 10) {
     const logs = wx.getStorageSync('practice_logs') || [];
     return logs.slice(0, limit);
   },
 
-  /**
-   * 执行修炼
-   * @param {string} gongfaId 功法ID
-   * @param {string} category 分类(body, mind...)
-   * @param {number} expGain 额外指定的经验值(可选)
-   */
+  // --- 【核心】执行修炼 ---
   doPractice(gongfaId, category, expGain = null) {
     const data = this.getCultivationData();
-    
-    // 安全检查：确保分类存在
-    if (!data[category]) return { success: false, msg: '修仙路径异常' };
-
     const list = data[category];
     const index = list.findIndex(item => item.id === gongfaId);
 
-    if (index === -1) return { success: false, msg: '功法不存在或已归隐' };
+    if (index === -1) return { success: false, msg: '功法不存在' };
 
     const item = list[index];
     const finalExp = expGain !== null ? expGain : item.exp;
 
-    // 1. 更新功法数据
+    // 1. 更新数据
     item.count = (item.count || 0) + 1;
     item.totalExpEarned = (item.totalExpEarned || 0) + finalExp;
-    
-    // 2. 写入缓存 (内存+异步磁盘)
     data[category][index] = item;
     Cache.set('userCultivations', data);
-    // 3. 【新增】记录修炼日志 (用于 AI 的 recent_activity)
-    this._addLog(item.name, category, finalExp);
 
-    // 4. 【新增】向聊天记录插入“系统事件” (用于 AI 上下文)
-    // 格式：[系统事件]：用户完成了健身30分钟，获得修为+5。
-    ChatService.saveMessage('system', `用户完成了${item.name}，获得修为+${finalExp}。`);  
+    // 2. 【新增】写入详细日志
+    this._addLog(item.name, category, finalExp);
 
     return {
       success: true,
@@ -151,7 +103,8 @@ const CultivationService = {
       newCount: item.count
     };
   },
-   /**
+
+  /**
    * 内部方法：添加日志
    */
   _addLog(actionName, type, exp) {
@@ -160,17 +113,13 @@ const CultivationService = {
     
     const newLog = {
       timestamp: now.getTime(),
-      dateStr: now.toDateString(), // 用于简单判断日期
       action: actionName,
       type: type,
       exp: exp
     };
 
-    // 把最新的插到最前面
     logs.unshift(newLog);
-    // 只保留最近 50 条
-    if (logs.length > 50) logs = logs.slice(0, 50);
-    
+    if (logs.length > 50) logs = logs.slice(0, 50); // 只保留最近50条
     wx.setStorageSync('practice_logs', logs);
   }
 };

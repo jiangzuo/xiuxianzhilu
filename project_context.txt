@@ -1,0 +1,3967 @@
+
+
+--- FILE START: D:\daima\xiuxian\pages\chat\chat.js ---
+const app = getApp();
+const ChatService = require('../../services/chat.service');
+const MemoryService = require('../../services/memory.service');
+const AIService = require('../../services/ai.service');
+const UserService = require('../../services/user.service');
+
+Page({
+  data: {
+    // 布局相关
+    statusBarHeight: 0,
+    navBarHeight: 44, 
+    keyboardHeight: 0,
+    isIphoneX: false,
+    
+    // 数据相关
+    msgList: [],
+    inputText: '',
+    scrollToViewId: '', // 滚动锚点
+    
+    // 状态
+    isFocus: false,
+    isResponding: false,
+    
+    // 计数器 (用于触发记忆分析)
+    msgCount: 0 
+  },
+
+  onLoad() {
+    // 1. 系统信息适配
+    const sys = wx.getSystemInfoSync();
+    const isIphoneX = sys.safeArea.top > 20;
+    this.setData({ 
+      statusBarHeight: sys.statusBarHeight,
+      isIphoneX: isIphoneX
+    });
+
+    // 2. 加载历史
+    this.initHistory();
+  },
+
+  // 页面卸载时触发记忆整理
+  onUnload() {
+    MemoryService.checkAndUpdateMemory();
+  },
+
+  // --- 加载历史 ---
+  initHistory() {
+    // 获取最近 50 条，过滤掉 system 消息
+    const history = ChatService.getHistory(50);
+    const visibleHistory = history.filter(msg => msg.role !== 'system');
+    
+    // 截取最近 20 条显示
+    const displayList = visibleHistory.slice(-20);
+
+    // 时间格式化
+    displayList.forEach(msg => {
+      const d = new Date(msg.timestamp);
+      msg.timeStr = `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
+      msg.showTime = true; 
+    });
+    
+    this.setData({ msgList: displayList });
+    
+    // 延迟滚动到底部
+    setTimeout(() => {
+      this.scrollToBottom();
+    }, 200);
+  },
+
+  // --- 交互逻辑 ---
+
+  goBack() {
+    wx.navigateBack();
+  },
+
+  hideKeyboard() {
+    wx.hideKeyboard();
+  },
+
+  onInputFocus(e) {
+    this.setData({ 
+      keyboardHeight: e.detail.height,
+    });
+    this.scrollToBottom();
+  },
+
+  onInputBlur() {
+    this.setData({ 
+      keyboardHeight: 0,
+      isFocus: false 
+    });
+  },
+
+  onInputChange(e) {
+    this.setData({ inputText: e.detail.value });
+  },
+
+  scrollToBottom() {
+    this.setData({ scrollToViewId: '' }, () => {
+      wx.nextTick(() => {
+        this.setData({ scrollToViewId: 'bottom-anchor' });
+      });
+    });
+  },
+
+  // --- 发送逻辑 ---
+
+  sendMessage() {
+    const text = this.data.inputText.trim();
+    // 防止为空或正在回复中
+    if (!text || this.data.isResponding) return;
+
+    // 1. 清空输入框
+    this.setData({ inputText: '' });
+
+    // 2. 上屏用户消息
+    const userMsg = ChatService.saveMessage('user', text);
+    this.appendMessage(userMsg);
+
+    // 3. AI 占位
+    this.setData({ isResponding: true });
+    const aiMsgId = Date.now();
+    const aiMsgPlaceholder = {
+      id: aiMsgId,
+      role: 'assistant',
+      content: '...', // 思考中...
+      isLoading: true
+    };
+    this.appendMessage(aiMsgPlaceholder);
+
+    // 4. 组装 Prompt
+    const requestMsgs = MemoryService.buildRequestMessages(text);
+    let fullContent = '';
+
+    // 5. 发送流式请求
+    AIService.sendMessageStream(
+      requestMsgs,
+      (chunk) => {
+        // 收到数据块
+        fullContent += chunk;
+        this.updateAiMessage(aiMsgId, fullContent, true);
+      },
+      () => {
+        // 完成
+        ChatService.saveMessage('assistant', fullContent);
+        this.updateAiMessage(aiMsgId, fullContent, false);
+        this.setData({ isResponding: false });
+        
+        // 【新增】对话结束，尝试触发后台记忆整理
+        // 这里只是检查是否满足条件(比如满10条)，满足则触发，不阻塞UI
+        MemoryService.checkAndUpdateMemory(); 
+      }
+    );
+  },
+
+  appendMessage(msg) {
+    const list = this.data.msgList;
+    const d = new Date();
+    msg.timeStr = `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
+    msg.showTime = true;
+    
+    list.push(msg);
+    this.setData({ msgList: list }, () => {
+      this.scrollToBottom();
+    });
+  },
+
+  updateAiMessage(id, content, isLoading) {
+    const list = this.data.msgList;
+    const target = list.find(m => m.id === id);
+    if (target) {
+      target.content = content;
+      target.isLoading = isLoading;
+      
+      this.setData({ msgList: list }, () => {
+        // 打字过程中持续滚动
+        if (isLoading) {
+           this.scrollToBottom();
+        }
+      });
+    }
+  }
+})
+--- FILE END: D:\daima\xiuxian\pages\chat\chat.js ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\chat\chat.json ---
+{
+  "navigationStyle": "custom",
+  "navigationBarTextStyle": "black",
+  "disableScroll": true,
+  "usingComponents": {
+    "van-icon": "@vant/weapp/icon/index"
+  }
+}
+--- FILE END: D:\daima\xiuxian\pages\chat\chat.json ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\chat\chat.wxml ---
+<!-- pages/chat/chat.wxml -->
+<view class="page-container">
+
+<!-- 1. 顶部导航栏 (完全复用日记页结构) -->
+<view class="custom-nav" style="padding-top: {{statusBarHeight}}px;">
+  <view class="nav-left" bindtap="goBack">
+    <van-icon name="arrow-left" size="22px" color="#3a3a3a" />
+  </view>
+  <!-- 标题强制隶书 -->
+  <view class="nav-center">
+      <image class="header-avatar" src="/images/spirit-icon.png" mode="aspectFit" />
+      <text class="font-lishu">器灵</text>
+    </view>
+  <view class="nav-right"></view>
+</view>
+
+<!-- 2. 中间内容区 (Flex: 1 自适应高度) -->
+<view class="main-content">
+  <scroll-view 
+    class="chat-scroll" 
+    scroll-y 
+    scroll-into-view="{{scrollToViewId}}"
+    scroll-with-animation="{{true}}"
+    bindtap="hideKeyboard"
+  >
+    <view class="padding-top"></view>
+
+    <block wx:for="{{msgList}}" wx:key="id">
+      <!-- 时间戳 -->
+      <view class="time-stamp" wx:if="{{item.showTime}}">{{item.timeStr}}</view>
+
+      <!-- 消息行 -->
+      <view class="msg-row {{item.role === 'user' ? 'row-user' : 'row-ai'}}" id="msg-{{index}}">
+        <!-- 气泡 (内容强制系统字体) -->
+        <view class="bubble font-system">
+          <text user-select>{{item.content}}</text>
+          <view wx:if="{{item.isLoading}}" class="loading-dots">...</view>
+        </view>
+      </view>
+    </block>
+
+    <!-- 底部锚点 -->
+    <view id="bottom-anchor" style="height: 20rpx;"></view>
+  </scroll-view>
+</view>
+
+<!-- 3. 底部输入区 (Flex 底部固定项) -->
+<!-- 通过 padding-bottom 适配键盘高度 -->
+<view class="footer-input" style="padding-bottom: {{keyboardHeight > 0 ? keyboardHeight : (isIphoneX ? 34 : 20)}}px;">
+  <view class="input-box">
+    <!-- 输入框强制系统字体 -->
+    <input 
+      class="input-field font-system"
+      value="{{inputText}}" 
+      placeholder="与器灵神识传音..." 
+      placeholder-class="input-placeholder"
+      confirm-type="send"
+      confirm-hold="{{true}}"
+      adjust-position="{{false}}"
+      focus="{{isFocus}}"
+      bindfocus="onInputFocus" 
+      bindblur="onInputBlur"
+      bindconfirm="sendMessage"
+      bindinput="onInputChange"
+    />
+    <view class="send-icon" bindtap="sendMessage">
+      <van-icon name="guide-o" size="26px" color="{{inputText ? '#c0a36a' : '#ccc'}}" />
+    </view>
+  </view>
+</view>
+
+</view>
+--- FILE END: D:\daima\xiuxian\pages\chat\chat.wxml ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\chat\chat.wxss ---
+/* pages/chat/chat.wxss */
+
+/* =========================== */
+/* 1. 页面布局框架 (参考 Journal) */
+/* =========================== */
+page {
+  background-color: #ECE9DD;
+  height: 100vh;
+  overflow: hidden; /* 禁止整页滚动 */
+}
+
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+}
+
+/* =========================== */
+/* 2. 顶部导航栏 (Fixed Height) */
+/* =========================== */
+.custom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px; /* 标准导航栏高度 */
+  padding: 0 32rpx;
+  flex-shrink: 0; /* 禁止被压缩 */
+  background-color: #ECE9DD;
+  z-index: 100;
+  box-shadow: 0 1rpx 0 rgba(0,0,0,0.05);
+}
+
+.nav-left, .nav-right {
+  width: 60rpx; /* 稍微宽一点方便点击 */
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* 左侧靠左 */
+.nav-left { justify-content: flex-start; }
+
+/* 中间标题 */
+.nav-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 36rpx; /* 标题字号 */
+  color: #3a3a3a;
+  font-weight: 500;
+  letter-spacing: 2rpx;
+}
+.header-avatar {
+  width: 60rpx;
+  height: 60rpx;
+  margin-right: 12rpx; /* 图片和文字的间距 */
+  border-radius: 50%;
+  border: 1rpx solid rgba(192, 163, 106, 0.3); /* 淡金色边框，增加精致感 */
+}
+
+/* 强制隶书工具类 */
+.font-lishu {
+  font-family: 'LishuFont', sans-serif !important;
+}
+
+/* =========================== */
+/* 3. 中间内容区 (Flex Item) */
+/* =========================== */
+.main-content {
+  flex: 1; /* 占据剩余空间 */
+  width: 100%;
+  min-height: 0; /* 【关键】防止 Flex 子元素内容溢出无法滚动 */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-scroll {
+  height: 100%; /* 撑满 main-content */
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.padding-top { height: 30rpx; }
+
+/* --- 聊天气泡样式 --- */
+.msg-row {
+  display: flex;
+  width: 100%;
+  padding: 0 32rpx;
+  margin-bottom: 30rpx;
+  box-sizing: border-box;
+}
+
+.bubble {
+  max-width: 80%;
+  padding: 24rpx 32rpx;
+  border-radius: 20rpx;
+  font-size: 30rpx;
+  line-height: 1.6;
+  position: relative;
+  word-break: break-all;
+  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.03);
+}
+
+/* 强制系统字体工具类 */
+.font-system, 
+.font-system text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Segoe UI, Arial, Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft Yahei', sans-serif !important;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* 时间戳 */
+.time-stamp {
+  text-align: center;
+  font-size: 22rpx;
+  color: #999;
+  margin-bottom: 24rpx;
+  font-family: -apple-system, sans-serif !important; 
+}
+
+/* 用户气泡 */
+.row-user { justify-content: flex-end; }
+.row-user .bubble {
+  background-color: #c0a36a;
+  color: #fff;
+  border-top-right-radius: 4rpx;
+}
+
+/* AI 气泡 */
+.row-ai { justify-content: flex-start; }
+.row-ai .bubble {
+  background-color: #fff;
+  color: #333;
+  border-top-left-radius: 4rpx;
+}
+
+/* Loading */
+.loading-dots {
+  display: inline-block;
+  margin-left: 8rpx;
+  color: #c0a36a;
+  font-weight: bold;
+}
+
+/* =========================== */
+/* 4. 底部输入栏 (Footer) */
+/* =========================== */
+.footer-input {
+  flex-shrink: 0; /* 禁止压缩 */
+  background-color: #f7f7f5;
+  padding-top: 20rpx;
+  padding-left: 32rpx;
+  padding-right: 32rpx;
+  /* padding-bottom 由内联样式动态控制 */
+  border-top: 1rpx solid rgba(0,0,0,0.05);
+  transition: padding-bottom 0.1s ease-out; /* 键盘动画 */
+  z-index: 200;
+}
+
+.input-box {
+  background-color: #fff;
+  border-radius: 40rpx;
+  padding: 18rpx 24rpx;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+  margin-bottom: 20rpx; /* 稍微留点底边距 */
+}
+
+.input-field {
+  flex: 1;
+  height: 50rpx;
+  min-height: 50rpx;
+  font-size: 30rpx;
+  margin-right: 16rpx;
+  color: #333;
+}
+
+.send-icon {
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+--- FILE END: D:\daima\xiuxian\pages\chat\chat.wxss ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\practice\practice.js ---
+// pages/practice/practice.js (最终大头部固定版 - 重构版)
+import Dialog from '@vant/weapp/dialog/dialog';
+import Notify from '@vant/weapp/notify/notify';
+const app = getApp();
+// 【引入 Service】
+const CultivationService = require('../../services/cultivation.service');
+
+Page({
+  data: {
+    pageClass: '',
+    statusBarHeight: 0,
+    notifyTop: 0,
+    
+    // 弹窗相关
+    showCustomDialog: false,
+    dialogTitle: '',
+    dialogMessage: '',
+    tempCultivationData: null,
+    
+    // 数据源
+    activeTab: 'body',
+    userCultivations: { body: [], mind: [], skill: [], wealth: [] },
+    totalExpMap: { body: 0, mind: 0, skill: 0, wealth: 0 },
+    
+    // 静态配置
+    categoryMap: { body: '体修', mind: '心修', skill: '术修', wealth: '财修' },
+    categoryIconMap: { 
+      body: 'gongfa-book-icon1.png', 
+      mind: 'gongfa-book-icon2.png', 
+      skill: 'gongfa-book-icon3.png', 
+      wealth: 'gongfa-book-icon4.png' 
+    },
+    
+    // 状态与动画
+    isCultivating: false,
+    showLevelUp: false,
+    levelUpInfo: {
+      realm: '',
+      levelName: '',
+      description: '你的修为有了新的精进，对大道的理解更深了一层。' 
+    },
+    levelUpAnimation: {},
+     // 【新增】结算弹窗相关数据
+     showSettlement: false, // 控制弹窗显示
+     settlementInfo: {      // 弹窗显示的内容
+       exp: 0,
+       categoryName: '',
+       attrChanges: []      // 属性变化列表 [{label: '寿元', val: 0.005}, ...]
+     },
+  },
+  
+
+  onLoad(options) {
+    const systemInfo = wx.getSystemInfoSync();
+    this.setData({
+      statusBarHeight: systemInfo.statusBarHeight
+    });
+
+    const applyFont = () => { this.setData({ pageClass: 'font-lishu' }); };
+    if (app.globalData.fontLoaded) { applyFont(); } 
+    else { app.fontReadyCallback = app.fontReadyCallback ? app.fontReadyCallback + applyFont : applyFont; }
+  },
+
+  onReady() {
+    this.calculateHeaderHeight();
+  },
+  
+  calculateHeaderHeight() {
+    setTimeout(() => {
+      const query = wx.createSelectorQuery().in(this);
+      query.select('.custom-nav').boundingClientRect(res => {
+        if (res && res.height) {
+          this.setData({ notifyTop: res.height });
+        }
+      }).exec();
+    }, 100);
+  },
+
+  onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().updateSelected('/pages/practice/practice');
+    }
+    // 【核心修改】只负责刷新数据，不负责计算
+    this.refreshData();
+  },
+
+  /**
+   * 【核心重构】刷新页面数据
+   * 从 Service 获取最新的功法列表和经验统计
+   */
+  refreshData() {
+    // 1. 获取列表数据
+    const cultivations = CultivationService.getCultivationData();
+    
+    // 2. 获取各类总经验 (简单计算或让Service提供)
+    const totalExpMap = {
+      body: CultivationService.calculateCategoryExp(cultivations.body),
+      mind: CultivationService.calculateCategoryExp(cultivations.mind),
+      skill: CultivationService.calculateCategoryExp(cultivations.skill),
+      wealth: CultivationService.calculateCategoryExp(cultivations.wealth),
+    };
+
+    this.setData({ 
+      userCultivations: cultivations,
+      totalExpMap: totalExpMap
+    });
+  },
+
+  // --- 交互逻辑 ---
+
+  onTabChange(event) {
+    this.setData({ activeTab: event.detail.name });
+  },
+
+  onCultivate(event) {
+    const { gongfa, category } = event.currentTarget.dataset;
+    this.setData({
+      showCustomDialog: true,
+      dialogTitle: '确认修炼',
+      dialogMessage: `是否要完成一次【${gongfa.name}】的修炼？`,
+      tempCultivationData: { gongfa, category } 
+    });
+  },
+
+  onDialogConfirm() {
+    const { gongfa, category } = this.data.tempCultivationData;
+    this.setData({ isCultivating: true });
+    
+    // 模拟修炼过程
+    setTimeout(() => {
+      this.setData({ isCultivating: false });
+      this.processCultivationResult(gongfa, category);
+    }, 1500);
+  },
+
+  /**
+   * 【核心重构】处理修炼结果
+   * 调用 Service 执行业务逻辑，页面只负责展示结果
+   */
+  processCultivationResult(gongfa, category) {
+    // 1. 记录修炼前的等级 (用于判断升级)
+    const oldLevelInfo = CultivationService.getCurrentLevelInfo();
+
+    // 2. 调用 Service 执行修炼 (核心写操作)
+    const result = CultivationService.doPractice(gongfa.id, category);
+
+    if (result.success) { 
+      // 3. 刷新界面数据
+      this.refreshData();
+
+      // 4. 判断升级
+      const newLevelInfo = CultivationService.getCurrentLevelInfo();
+      if (newLevelInfo.level > oldLevelInfo.level) {
+        // --- 触发升级弹窗 ---
+        const breakthroughDesc = newLevelInfo.breakthroughDesc || this.data.levelUpInfo.description;
+        this.setData({
+          'levelUpInfo.levelName': newLevelInfo.name,
+          'levelUpInfo.description': breakthroughDesc,
+          showLevelUp: true
+        });
+        
+        // 播放升级动画
+        const animation = wx.createAnimation({ duration: 400, timingFunction: 'ease' });
+        wx.nextTick(() => {
+          animation.scale(1).opacity(1).step();
+          this.setData({ levelUpAnimation: animation.export() });
+        });
+      } else {
+         // 【修改】不再调用 Notify，而是显示结算弹窗
+         this.showSettlementModal(result.addedExp, category);
+        }
+      } else {
+        wx.showToast({ title: '修炼数据异常', icon: 'none' });
+      }
+    },
+  
+    // 【新增】显示结算弹窗
+    showSettlementModal(addedExp, category) {
+      // 1. 计算属性增量 (根据 Service 里的公式反推)
+      // 公式参考：寿元=Exp/1000, 其他五维=Exp/500
+      const changes = [];
+      
+      // 公共公式
+      const attrIncrement = parseFloat((addedExp / 500).toFixed(3)); 
+      const lifeIncrement = parseFloat((addedExp / 1000).toFixed(3)); 
+  
+      if (category === 'body') {
+        changes.push({ label: '寿元', val: lifeIncrement });
+        changes.push({ label: '体质', val: attrIncrement });
+      } else if (category === 'mind') {
+        changes.push({ label: '寿元', val: lifeIncrement });
+        changes.push({ label: '心境', val: attrIncrement });
+      } else if (category === 'skill') {
+        changes.push({ label: '智慧', val: attrIncrement });
+      } else if (category === 'wealth') {
+        changes.push({ label: '财富', val: attrIncrement });
+      }
+  
+      // 2. 设置数据并显示
+      this.setData({
+        showSettlement: true,
+        settlementInfo: {
+          exp: addedExp,
+          categoryName: this.data.categoryMap[category],
+          attrChanges: changes
+        }
+      });
+    },
+  
+    // 【新增】关闭结算弹窗
+    closeSettlement() {
+      this.setData({ showSettlement: false });
+    },
+  // --- 升级弹窗关闭逻辑 (保持不变) ---
+  closeLevelUp() {
+    const animation = wx.createAnimation({ duration: 300, timingFunction: 'ease' });
+    animation.scale(0.5).opacity(0).step();
+    this.setData({ levelUpAnimation: animation.export() });
+    
+    setTimeout(() => {
+      this.setData({ showLevelUp: false });
+      // 移除 TabBar 红点逻辑 (如果之前有的话)
+      // wx.removeTabBarBadge({ index: 1 }); 
+    }, 300);
+  },
+
+  navigateToSettings() {
+    wx.switchTab({ url: '/pages/settings/settings' });
+  }
+})
+--- FILE END: D:\daima\xiuxian\pages\practice\practice.js ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\practice\practice.json ---
+
+{
+  "usingComponents": {
+    "custom-dialog": "/components/custom-dialog"},
+  "navigationStyle": "custom"
+}
+--- FILE END: D:\daima\xiuxian\pages\practice\practice.json ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\practice\practice.wxml ---
+<!-- pages/practice/practice.wxml (最终大头部固定版) -->
+
+<wxs src="/utils/formatter.wxs" module="formatter" />
+<van-notify id="van-notify" top="{{ notifyTop }}" />
+
+<view class="page-wrapper {{ pageClass }}">
+  <!-- 1. “大头部”容器 -->
+  <view class="header-container">
+    <view class="custom-nav" style="padding-top: {{ statusBarHeight }}px;">
+      <view class="nav-title">修炼场</view>
+    </view>
+    
+    <!-- 我们将完整的 van-tabs 结构（包含空的 van-tab）放在头部，用于生成导航栏 -->
+    <van-tabs 
+      active="{{ activeTab }}" 
+      bind:change="onTabChange" 
+      custom-class="header-tabs"
+      nav-class="practice-tabs-nav"
+      tab-class="practice-tab"
+      tab-active-class="practice-tab-active"
+    >
+      <!-- 这个循环的唯一目的，就是告诉 van-tabs 需要渲染哪些导航标签 -->
+      <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:key="key">
+        <van-tab title="{{ categoryMap[key] }}" name="{{ key }}"></van-tab>
+      </block>
+    </van-tabs>
+  </view>
+
+  <!-- 2. “滚动区”容器 -->
+  <view class="scroll-container">
+    <!-- 我们在这里根据 activeTab 的值，只渲染对应的那一个内容面板 -->
+    <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:for-item="categoryItems" wx:key="key">
+      <view class="tab-content" wx:if="{{ activeTab === key }}">
+        <view class="container">
+          <view class="category-exp-header">
+            累计修为: <text class="exp-number">{{ totalExpMap[key] }}</text>
+          </view>
+          <view class="gongfa-grid-container">
+            <block wx:if="{{ categoryItems.length > 0 }}">
+               <block wx:for="{{ categoryItems }}" wx:key="id">
+                <view wx:if="{{ item.status !== 'archived' }}" class="gongfa-item" bind:tap="onCultivate" data-gongfa="{{ item }}" data-category="{{ key }}">
+                  <image class="gongfa-book-icon" src="/images/{{ categoryIconMap[key] }}" mode="aspectFit" />
+                  <view class="gongfa-item-name">{{ item.name }}</view>
+                  <view class="gongfa-item-count">已修炼 {{ item.count }} 次</view>
+                </view>
+              </block>
+            </block>
+            <view wx:else class="empty-state">
+              <view class="empty-text">尚未编入此路线的功法</view>
+              <view class="empty-link" bind:tap="navigateToSettings">前往功法阁</view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+</view>
+
+<custom-dialog 
+  class="{{ pageClass }}"
+  show="{{ showCustomDialog }}"
+  title="{{ dialogTitle }}"
+  message="{{ dialogMessage }}"
+  bind:confirm="onDialogConfirm"
+/>
+
+<view class="loading-mask {{ pageClass }}" wx:if="{{ isCultivating }}">
+  <view class="loading-content">
+    <view class="loading-text">修炼中...</view>
+    <view class="loading-bar">
+      <view class="loading-bar-inner" style="animation-duration: 1.5s;"></view>
+    </view>
+  </view>
+</view>
+
+<!-- 境界突破弹窗 -->
+<view class="level-up-mask {{ pageClass }}" wx:if="{{ showLevelUp }}" bind:tap="closeLevelUp">
+  
+  <image class="level-up-bg" src="/images/level-up-bg.png" mode="widthFix" />
+  
+  <view class="level-up-content" animation="{{ levelUpAnimation }}">
+    
+    <view class="level-up-orb-wrapper">
+      <image class="level-up-orb-bg" src="/images/level-up-orb.png" />
+      <view class="level-up-orb-text">
+        <!-- 【位置就在这里】 -->
+        <view class="level-text">{{ formatter.CJKType(levelUpInfo.levelName) }}</view>
+      </view>
+    </view>
+    
+    <view class="level-up-desc">{{ levelUpInfo.description }}</view>
+    
+    <view class="level-up-confirm" catch:tap="closeLevelUp">
+      <image class="confirm-button-bg" src="/images/button-bg-confirm.png" />
+      <text class="confirm-button-text">确认</text>
+    </view>
+
+  </view>
+</view>```
+
+<!-- 【新增】修炼结算弹窗 -->
+<view class="settlement-mask" wx:if="{{ showSettlement }}" catch:touchmove="true">
+  <view class="dialog-container">
+    <!-- 复用通用弹窗背景 -->
+    <image class="dialog-bg" src="/images/dialog-bg.png" mode="scaleToFill" />
+    
+    <view class="dialog-content">
+      <!-- 1. 顶部提示语 -->
+      <view class="settle-title">
+        恭喜！获得 <text class="highlight-num">{{ settlementInfo.exp }}</text> 点修为
+      </view>
+      <view class="settle-subtitle">
+        对{{ settlementInfo.categoryName }}的领悟有所提升
+      </view>
+
+      <!-- 2. 属性变化展示 (根据截图布局) -->
+      <view class="settle-attrs">
+        <block wx:for="{{ settlementInfo.attrChanges }}" wx:key="label">
+          <view class="attr-change-item">
+            <text class="attr-label">{{ item.label }}：</text>
+            <text class="attr-val">{{ item.val }}</text>
+            <!-- 红色上升箭头 -->
+            <text class="attr-arrow">↑</text>
+          </view>
+        </block>
+      </view>
+
+      <!-- 3. 确认按钮 -->
+      <view class="dialog-actions">
+        <view class="action-button confirm" bind:tap="closeSettlement">
+          <image class="button-bg" src="/images/button-bg-confirm.png" />
+          <text class="button-text">确认</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+--- FILE END: D:\daima\xiuxian\pages\practice\practice.wxml ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\practice\practice.wxss ---
+/* pages/practice/practice.wxss (最终大头部固定版) */
+
+page {
+  height: 100%;
+  overflow: hidden;
+  background-color: #ECE9DD;
+}
+
+.page-wrapper {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: calc(50px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.header-container {
+  flex-shrink: 0;
+  background-color: #ECE9DD;
+}
+.custom-nav {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+.nav-title {
+  font-size: 34rpx;
+  font-weight: 500;
+}
+.header-tabs /deep/ .van-tabs__content {
+  display: none;
+}
+
+.scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* --- Tabs 导航栏的美化样式 --- */
+.practice-tabs-nav {
+  background-color: #ECE9DD !important; 
+}
+.practice-tab {
+  color: #888 !important;
+}
+.practice-tab-active {
+  color: #3a3a3a !important;
+  font-weight: 500;
+}
+.van-tabs__line {
+  display: none !important;
+}
+.practice-tab-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2em;
+  height: 3px;
+  background-color: #3BB89B;
+  border-radius: 3px;
+}
+
+/* --- 内容区域及其他组件样式 (保持不变) --- */
+.container {
+  padding: 32rpx;
+}
+.category-exp-header {
+  padding: 0;
+  margin: 0rpx 0 32rpx; 
+  color: #FF8D28;
+  font-size: 28rpx;
+  text-align: center;
+}
+.exp-number {
+  color: #FF8D28;
+  font-size: 32rpx;
+  font-weight: 500;
+  margin-left: 8rpx;
+}
+.gongfa-grid-container { 
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36rpx; 
+}
+.gongfa-item {
+  
+  background-color: #DEDEDE; 
+  
+  /* 3. 添加阴影 */
+  box-shadow: 0 8rpx 12rpx rgba(0, 0, 0, 0.08); 
+  
+  border-radius: 24rpx; /* 增加圆角，配合阴影更好看 */
+  padding: 32rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.gongfa-book-icon {
+  width: 160rpx;
+  height: 160rpx;
+  margin-bottom: 24rpx;
+}
+.gongfa-item-name {
+  font-size: 28rpx;
+  color: #3a3a3a;
+  font-weight: 500;
+}
+.gongfa-item-count {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 12rpx;
+}
+
+/* 空状态 (保持不变) */
+.empty-state {
+  width: 100%;
+  text-align: center;
+  padding: 100rpx 0;
+}
+.empty-text {
+  color: #969799;
+  font-size: 28rpx;
+}
+.empty-link {
+  color: #4a90e2;
+  margin-top: 16rpx;
+  display: inline-block;
+}
+
+/* 弹窗样式 (保持不变) */
+.loading-mask { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.7); display: flex; justify-content: center; align-items: center; z-index: 100; }
+.loading-content { width: 70%; text-align: center; }
+.loading-text { color: #fff; font-size: 32rpx; margin-bottom: 24rpx; }
+.loading-bar { width: 100%; height: 16rpx; background-color: #555; border-radius: 8rpx; overflow: hidden; }
+.loading-bar-inner { width: 0%; height: 100%; background: linear-gradient(to right, #ffd700, #ffb347); border-radius: 8rpx; animation-name: loading-progress; animation-timing-function: linear; animation-fill-mode: forwards; }
+@keyframes loading-progress { from { width: 0%; } to { width: 100%; } }
+/* --- 【核心改造】境界突破弹窗 --- */
+.level-up-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+  padding: 64rpx;
+  box-sizing: border-box;
+}
+
+.level-up-bg {
+  position: absolute;
+  width: 90%;
+  max-width: 680rpx;
+  z-index: 1;
+}
+
+.level-up-content {
+  width: 90%;
+  max-width: 680rpx;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform: scale(0.5);
+  opacity: 0;
+}
+
+/* 【核心改造】顶部的法球 */
+.level-up-orb-wrapper {
+  position: relative;
+  width: 360rpx; 
+  height: 360rpx;
+  margin-top: -120rpx;
+}
+.level-up-orb-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.level-up-orb-text {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  white-space: pre-wrap;
+  text-align: center;
+}
+/* 移除不再需要的 .realm-text 样式 */
+
+/* 2. 放大境界文字 */
+.level-text {
+  font-size: 72rpx; /* 增大字号 */
+  font-weight: bold; /* 加粗 */
+  line-height: 1.3;
+}
+
+
+/* 中间的描述文字 */
+.level-up-desc {
+  font-size: 28rpx;
+  color: #5c5241; /* 棕褐色 */
+  line-height: 1.8;
+  text-align: justify;
+  margin-top: 48rpx;
+  padding: 0 48rpx;
+}
+
+/* 底部的确认按钮 */
+.level-up-confirm {
+  width: 240rpx;
+  height: 80rpx;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 64rpx;
+}
+.confirm-button-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+.confirm-button-text {
+  position: relative;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #fff;
+}
+.settlement-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 900;
+}
+
+/* 1. 弹窗容器：设为相对定位，作为内部元素的坐标系 */
+.settlement-mask .dialog-container {
+  width: 80%;
+  max-width: 600rpx;
+  position: relative; /* 关键：让内部的 absolute 元素以此为基准 */
+  font-family: 'LishuFont', sans-serif;
+  animation: popIn 0.3s ease-out;
+  /* 不需要设背景色，因为有图片背景 */
+}
+
+/* 2. 背景图：绝对定位，铺满整个容器，并置于底层 */
+.settlement-mask .dialog-bg {
+  position: absolute; /* 关键：脱离文档流 */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* 放在最底层 */
+  border-radius: 12rpx; /* 可选：稍微圆角一点 */
+}
+
+/* 3. 内容区域：相对定位，撑开高度，置于顶层 */
+.settlement-mask .dialog-content {
+  position: relative; /* 关键：让内容浮在背景图上面 */
+  z-index: 2; /* 比背景图高 */
+  padding: 48rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box; /* 确保 padding 不撑大容器 */
+}
+
+/* --- 文本样式 --- */
+.settle-title {
+  font-size: 34rpx;
+  color: #3a3a3a;
+  margin-top: 10rpx;
+  font-weight: 500;
+}
+
+.highlight-num {
+  font-size: 32rpx;
+  color: #a94442; /* 丹砂红 */
+  font-weight: bold;
+  margin: 0 6rpx;
+}
+
+.settle-subtitle {
+  font-size: 34rpx;
+  color: #3a3a3a;
+  margin-bottom: 22rpx;
+  font-weight: 500;
+}
+
+/* --- 属性变化列表 --- */
+.settle-attrs {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 40rpx;
+  margin-top: 10rpx;
+  margin-bottom: 30rpx;
+}
+
+.attr-change-item {
+  display: flex;
+  align-items: center;
+  font-size: 30rpx;
+  color: #3a3a3a;
+}
+
+.attr-label {
+  color: #555;
+}
+
+.attr-val {
+  font-family: sans-serif;
+  margin-left: 8rpx;
+  font-weight: bold;
+}
+
+.attr-arrow {
+  color: #d81e06;
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-left: 8rpx;
+  animation: floatUp 1s infinite;
+}
+
+@keyframes floatUp {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6rpx); }
+}
+
+/* --- 按钮样式修复 --- */
+.settlement-mask .dialog-actions {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.settlement-mask .action-button {
+  position: relative; /* 关键 */
+  width: 240rpx;      /* 限制按钮宽度 */
+  height: 80rpx;      /* 限制按钮高度 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* 按钮背景图：绝对定位铺满按钮容器 */
+.settlement-mask .button-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* 按钮文字：浮在背景图上面 */
+.settlement-mask .button-text {
+  position: relative;
+  z-index: 2;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 500;
+  letter-spacing: 2rpx;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+--- FILE END: D:\daima\xiuxian\pages\practice\practice.wxss ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\profile\profile.js ---
+// pages/profile/profile.js
+const app = getApp();
+const CultivationService = require('../../services/cultivation.service');
+const { QUOTES_LIBRARY } = require('../../utils/level-data.js');
+
+Page({
+  data: {
+    pageClass: '',
+    statusBarHeight: 0,
+    
+    // 核心数据
+    userInfo: {},
+    userAttributes: {},
+    dailyQuote: '',
+
+    // --- 玩法说明数据 ---
+    showHelp: false,
+    currentHelpIndex: 0, // 当前轮播页码
+    helpImages: [
+      '/images/guide-1.png', 
+      '/images/guide-2.png', 
+      '/images/guide-3.png'
+    ]
+  },
+  // 【新增】跳转到器灵聊天页
+  navigateToChat() {
+    wx.navigateTo({
+      url: '/pages/chat/chat',
+      fail: (err) => {
+        console.error('跳转失败，请检查 app.json 是否配置了页面', err);
+      }
+    });
+  },
+
+
+  onLoad(options) {
+    const systemInfo = wx.getSystemInfoSync();
+    this.setData({ statusBarHeight: systemInfo.statusBarHeight });
+
+    const applyFont = () => { this.setData({ pageClass: 'font-lishu' }); };
+    if (app.globalData.fontLoaded) { applyFont(); } 
+    else { app.fontReadyCallback = app.fontReadyCallback ? app.fontReadyCallback + applyFont : applyFont; }
+  },
+
+  onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().updateSelected('/pages/profile/profile');
+    }
+    this.refreshData();
+    this.updateDailyQuote();
+  },
+
+  refreshData() {
+    const levelInfo = CultivationService.getCurrentLevelInfo();
+    const attributes = CultivationService.calculateAttributes();
+    this.setData({ userInfo: levelInfo, userAttributes: attributes });
+  },
+
+  updateDailyQuote() {
+    const today = new Date().toDateString();
+    const lastDate = wx.getStorageSync('lastQuoteDate');
+    
+    if (today !== lastDate) {
+      const randomIndex = Math.floor(Math.random() * QUOTES_LIBRARY.length);
+      const newQuote = QUOTES_LIBRARY[randomIndex];
+      this.setData({ dailyQuote: newQuote });
+      wx.setStorageSync('dailyQuote', newQuote);
+      wx.setStorageSync('lastQuoteDate', today);
+    } else {
+      const cachedQuote = wx.getStorageSync('dailyQuote') || QUOTES_LIBRARY[0];
+      this.setData({ dailyQuote: cachedQuote });
+    }
+  },
+
+  // --- 玩法说明交互逻辑 ---
+
+  // 打开弹窗
+  onShowHelp() {
+    this.setData({ 
+      showHelp: true,
+      currentHelpIndex: 0 // 每次打开重置到第一张
+    });
+  },
+
+  // 关闭弹窗
+  onCloseHelp() {
+    this.setData({ showHelp: false });
+  },
+
+  // 监听轮播滑动
+  onHelpSwiperChange(e) {
+    this.setData({ currentHelpIndex: e.detail.current });
+  },
+
+  // 点击上一张
+  onHelpPrev() {
+    let current = this.data.currentHelpIndex;
+    if (current > 0) {
+      this.setData({ currentHelpIndex: current - 1 });
+    }
+  },
+
+  // 点击下一张
+  onHelpNext() {
+    let current = this.data.currentHelpIndex;
+    if (current < this.data.helpImages.length - 1) {
+      this.setData({ currentHelpIndex: current + 1 });
+    }
+  },
+
+  navigateToJournal() {
+    wx.navigateTo({ url: '/pkg_journal/pages/list/list' })
+  },
+
+  navigateToReview() {
+    wx.showToast({ title: '功能开发中~', icon: 'none' });
+  },
+})
+--- FILE END: D:\daima\xiuxian\pages\profile\profile.js ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\profile\profile.json ---
+{
+  
+  "navigationStyle": "custom"
+}
+--- FILE END: D:\daima\xiuxian\pages\profile\profile.json ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\profile\profile.wxml ---
+<!-- pages/profile/profile.wxml -->
+<view class="page-container {{ pageClass }}">
+
+<!-- 1. 顶部固定区 -->
+<view class="top-section" style="padding-top: {{ statusBarHeight }}px;">
+  <view class="custom-nav">
+    <!-- 玩法说明入口 -->
+    <view class="nav-left" bind:tap="onShowHelp">
+      <van-icon name="info-o" size="20px" color="#3a3a3a" />
+    </view>
+    <view class="nav-title">我的洞府</view>
+    <view class="nav-right-placeholder"></view>
+  </view>
+  
+  <!-- 面板区域 -->
+  <view class="panel realm-panel">
+    <image class="panel-bg-img" src="/images/panel-bg-realm.png" mode="scaleToFill" />
+    <view class="panel-content">
+      <view class="realm-name">{{ userInfo.levelName }}</view>
+      <view class="exp-bar-wrapper">
+        <text class="exp-label">修为</text>
+        <view class="progress-bar-container">
+          <image class="panel-bg-img" src="/images/progress-bar-bg.png" mode="scaleToFill" />
+          <view class="progress-bar-portion" style="width: {{ userInfo.expPercentage }};"></view>
+          <text class="exp-value-inside">{{ userInfo.currentExp }}/{{ userInfo.expToNext }}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="panel attributes-panel">
+    <image class="panel-bg-img" src="/images/panel-bg-attributes.png" mode="scaleToFill" />
+    <view class="panel-content">
+      <view class="attr-row">
+        <view class="attr-item"><text class="attr-label">寿元:</text><text class="attr-value">{{ userAttributes.shouYuan }}</text></view>
+        <view class="attr-item"><text class="attr-label">体质:</text><text class="attr-value">{{ userAttributes.tiZhi }}</text></view>
+        <view class="attr-item"><text class="attr-label">心境:</text><text class="attr-value">{{ userAttributes.xinJing }}</text></view>
+      </view>
+      <view class="attr-row">
+        <view class="attr-item"><text class="attr-label">智慧:</text><text class="attr-value">{{ userAttributes.zhiHui }}</text></view>
+        <view class="attr-item"><text class="attr-label">财富:</text><text class="attr-value">{{ userAttributes.caiFu }}</text></view>
+      </view>
+    </view>
+  </view>
+
+  <view class="panel quote-panel">
+    <image class="quote-panel-bg" src="/images/panel-bg-quote-stretchable.png" mode="scaleToFill" />
+    <view class="quote-content-wrapper">
+      <image class="quote-icon" src="/images/icon-yinyang.png" />
+      <text class="quote-text">{{ dailyQuote }}</text>
+    </view>
+  </view>
+</view>
+
+<!-- 2. 中间滚动区 -->
+<view class="middle-section">
+  <view class="avatar-wrapper">
+    <image class="avatar-image" src="/images/profile-avatar-ink.png" mode="aspectFit" />
+  </view>
+</view>
+
+<!-- 3. 底部固定区 -->
+<view class="bottom-section">
+  <view class="action-button journal-btn" bind:tap="navigateToJournal">
+    <image class="panel-bg-img" src="/images/btn-bg-ink.png" mode="scaleToFill" />
+    <text class="btn-text">感悟日记</text>
+  </view>
+  <view class="action-button review-btn" bind:tap="navigateToReview">
+    <image class="panel-bg-img" src="/images/btn-bg-ink.png" mode="scaleToFill" />
+    <text class="btn-text">修炼回顾</text>
+  </view>
+</view>
+
+ <!-- 【新增】器灵悬浮入口 -->
+ <view class="spirit-float-btn" bind:tap="navigateToChat">
+    
+    <!-- 器灵图标 -->
+    <image class="spirit-img" src="/images/spirit-icon.png" mode="aspectFit" />
+  </view>
+
+</view>
+
+<!-- 【玩法说明弹窗】 -->
+<van-popup 
+  show="{{ showHelp }}" 
+  bind:close="onCloseHelp"
+  custom-style="background: transparent;"
+  z-index="1000"
+  close-on-click-overlay="{{ false }}"
+>
+  <view class="help-container">
+    
+    <!-- 1. 关闭按钮 (浮在右上角) -->
+    <view class="help-close-area" catch:tap="onCloseHelp">
+      <!-- 还是用你之前的关闭图片，或者换回 icon 都可以 -->
+      <image class="help-close-img" src="/images/icon-close.png" mode="aspectFit" />
+    </view>
+
+    <!-- 2. 轮播区域 -->
+    <swiper 
+      class="help-swiper" 
+      current="{{ currentHelpIndex }}"
+      bindchange="onHelpSwiperChange"
+      indicator-dots="{{ false }}" 
+      circular="{{ false }}"
+    >
+      <block wx:for="{{ helpImages }}" wx:key="*this">
+        <swiper-item class="help-item">
+          <image src="{{ item }}" class="help-image" mode="widthFix" />
+        </swiper-item>
+      </block>
+    </swiper>
+
+    <!-- 3. 底部控制栏 (现在是浮在图片上的) -->
+    <view class="help-controls-overlay">
+      <!-- 上一张 -->
+      <view 
+        class="control-btn prev {{ currentHelpIndex === 0 ? 'disabled' : '' }}" 
+        catch:tap="onHelpPrev"
+      >
+        <van-icon name="arrow-left" size="20px" color="#555" />
+      </view>
+
+      <!-- 页码 -->
+      <view class="page-indicator">
+        {{ currentHelpIndex + 1 }} / {{ helpImages.length }}
+      </view>
+
+      <!-- 下一张 -->
+      <view 
+        class="control-btn next {{ currentHelpIndex === helpImages.length - 1 ? 'disabled' : '' }}" 
+        catch:tap="onHelpNext"
+      >
+        <van-icon name="arrow" size="20px" color="#555" />
+      </view>
+    </view>
+
+  </view>
+</van-popup>
+--- FILE END: D:\daima\xiuxian\pages\profile\profile.wxml ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\profile\profile.wxss ---
+/* pages/profile/profile.wxss (最终 Flexbox 稳定修复版) */
+
+/* --- 1. 页面级样式 --- */
+page {
+  height: 100vh;
+  overflow: hidden;
+  color: #3a3a3a;
+  background-color: #ECE9DD;
+  font-family: sans-serif;
+}
+
+/* --- 2. 页面总容器 --- */
+.page-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding-bottom: calc(50px + env(safe-area-inset-bottom));
+}
+
+/* --- 3. 顶部固定区 --- */
+.top-section {
+  flex-shrink: 0;
+  /* 这里的 padding 决定了图标距离屏幕边缘的距离 */
+  padding: 0 32rpx; 
+  z-index: 10;
+  background-color: #ECE9DD;
+}
+
+/* 【核心修复】自定义导航栏布局 */
+.custom-nav {
+  height: 44px;
+  width: 100%;
+  position: relative; /* 作为坐标系基准 */
+  display: flex;
+  align-items: center;
+  /* 移除 justify-content，改用绝对定位 */
+}
+
+/* 1. 左侧图标：强制绝对定位在最左侧 */
+.nav-left {
+  position: absolute;
+  left: 16rpx;  /* 紧贴父容器左侧 */
+  top: 0;
+  height: 100%;
+  width: 80rpx; /* 增大点击热区 */
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* 图标靠左对齐 */
+  z-index: 20; /* 确保层级高，可点击 */
+}
+
+/* 2. 中间标题：强制绝对定位在正中心 */
+.nav-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%); /* 经典的绝对居中写法 */
+  font-size: 36rpx;
+  font-weight: 500;
+  color: #3a3a3a;
+  z-index: 10;
+  white-space: nowrap; /* 防止标题换行 */
+}
+
+/* 右侧占位可以删掉或者留着，因为用了绝对定位，它已经不影响布局了 */
+.nav-right-placeholder {
+  display: none; 
+}
+
+
+/* --- 面板通用样式 --- */
+.panel {
+  box-sizing: border-box;
+  margin-bottom: 36rpx;
+  position: relative; /* 【关键】为内部绝对定位的背景图提供容器 */
+  overflow: hidden; /* 防止背景图溢出 */
+}
+
+/* 【修复】背景图的通用样式 */
+.panel-bg-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* 置于底层 */
+}
+
+/* 【修复】面板内容的容器，确保在背景图之上 */
+.panel-content {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+/* --- 境界与修为面板 --- */
+.realm-panel {
+  margin-top: 24rpx;
+  height: 140rpx;
+}
+.realm-panel .panel-content {
+  display: flex; 
+  flex-direction: column; 
+  justify-content: center; 
+  align-items: center;
+  padding: 10rpx 70rpx 10rpx 80rpx;
+}
+.realm-name { 
+  font-size: 36rpx; 
+  font-weight: bold; 
+  margin-bottom: 12rpx; 
+}
+.exp-bar-wrapper { 
+  width: 100%; 
+  display: flex; 
+  align-items: center; 
+  font-size: 28rpx; 
+}
+.exp-label { 
+  margin-right: 16rpx; 
+}
+.progress-bar-container {
+  flex: 1;
+  height: 48rpx;
+  padding: 8rpx 12rpx; 
+  box-sizing: border-box;
+  position: relative; /* 【关键】为内部元素定位提供容器 */
+  border-radius: 999px 0 0 999px; 
+  overflow: hidden;
+}
+.progress-bar-portion {
+  /* 【核心修改 ①】将高度从 100% 改为一个具体的值，例如 24rpx */
+  /* 你可以根据喜好调整这个数值大小 */
+  height: 36rpx;
+
+  /* 【核心修改 ②】将 top 从 0 改为 50% */
+  top: 50%;
+  transform: translateY(-50%);
+  left: 0.1; /* 依然从左侧开始 */
+  border-radius: 6px 0 0 6px; /* 可以适当减小圆角，比如 2px，使其更匹配新的高度 */
+  transition: width 0.3s ease-in-out;
+  z-index: 3;
+  background: linear-gradient(to right, #252525, #c0c0c0);
+  position: absolute;
+}
+
+.exp-value-inside {
+  position: absolute;
+  right: 24rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 4; /* 最高层 */
+  font-size: 22rpx;
+  color: #3a3a3a;
+  text-shadow: 0 0 4rpx rgba(0, 0, 0, 0.5); 
+}
+
+/* --- 五大属性面板 --- */
+.attributes-panel {
+  height: 140rpx;
+}
+.attributes-panel .panel-content {
+  display: flex; 
+  flex-direction: column; 
+  justify-content: center;
+  padding: 10rpx 70rpx 10rpx 80rpx;
+  font-size: 28rpx;
+}
+.attr-row { 
+  display: flex; 
+  width: 100%; 
+  margin-bottom: 12rpx;
+}
+.attr-row:last-child {
+  margin-bottom: 0;
+}
+.attr-item { 
+  width: 33.33%; 
+  display: flex; 
+  flex-shrink: 0; 
+}
+.attr-label {
+  flex-shrink: 0; 
+  margin-right: 6rpx;
+}
+.attr-value {
+  flex-grow: 1; 
+  font-weight: 500;
+}
+
+/* --- 每日语录面板 --- */
+.quote-panel {
+  width: 97%; 
+  margin-left: auto;
+  margin-right: auto;
+  min-height: 80rpx; 
+  display: flex;
+  align-items: center;
+}
+.quote-panel-bg { /* 此处 image 标签的样式本身就是正确的，无需修改 */
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+.quote-content-wrapper {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  padding: 16rpx 48rpx;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+}
+.quote-icon { 
+  width: 32rpx; 
+  height: 32rpx; 
+  flex-shrink: 0;
+  margin-right: 24rpx;
+}
+.quote-text {
+  font-size: 28rpx;
+}
+
+/* --- 4. 中间滚动区 --- */
+.middle-section {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.avatar-image {
+  width: 700rpx;
+  height: 700rpx;
+}
+
+/* --- 5. 底部固定区 --- */
+.bottom-section {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-around;
+  padding: 24rpx 48rpx;
+  z-index: 10;
+  background: linear-gradient(to top, #ECE9DD, rgba(236, 233, 221, 0));
+}
+.action-button {
+  width: 280rpx; 
+  height: 120rpx;
+  display: flex; 
+  justify-content: center; 
+  align-items: center;
+  font-size: 32rpx; 
+  font-weight: 500;
+  position: relative; /* 【关键】为背景图和文字提供定位容器 */
+  overflow: hidden; /* 防止背景图溢出 */
+}
+/* 【修复】按钮文字样式 */
+.btn-text {
+  position: relative;
+  z-index: 2; /* 确保文字在背景图之上 */
+}
+
+/* === 玩法说明弹窗样式优化 === */
+/* =========================== */
+
+.help-container {
+  width: 600rpx;
+  position: relative;
+  /* 移除底部的 padding-bottom，因为控制栏悬浮了 */
+  border-radius: 24rpx;
+  overflow: hidden; 
+  /* 背景透明，因为图片已经撑满了 */
+  background-color: transparent; 
+}
+
+/* 关闭按钮区域 (保持悬浮) */
+.help-close-area {
+  position: absolute;
+  top: 20rpx;
+  right: 20rpx;
+  width: 60rpx;
+  height: 60rpx;
+  z-index: 20; /* 确保在最上层 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.help-close-img {
+  width: 60rpx; /* 稍微调小一点精致些 */
+  height: 60rpx;
+  opacity: 0.6;
+}
+
+/* 轮播图容器 */
+.help-swiper {
+  width: 100%;
+  /* 高度依然需要指定，根据你的图片比例设定，例如 3:4 */
+  height: 900rpx; 
+  background-color: #ECE9DD;
+}
+
+.help-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* --- 【核心修改】悬浮底部控制栏 --- */
+.help-controls-overlay {
+  position: absolute; /* 绝对定位 */
+  bottom: 40rpx;      /* 距离底部的位置 */
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center; /* 整体居中 */
+  align-items: center;
+  gap: 60rpx; /* 按钮和页码之间的间距 */
+  z-index: 20; /* 浮在图片上面 */
+}
+
+/* 圆形按钮容器 */
+.control-btn {
+  width: 70rpx;
+  height: 70rpx;
+  border-radius: 50%;
+  /* 半透明白底，制造磨砂感，防止背景干扰 */
+  background-color: rgba(187, 211, 171, 0.596);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.1);
+  transition: all 0.2s;
+}
+
+.control-btn:active {
+  transform: scale(0.9);
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+/* 禁用状态 */
+.control-btn.disabled {
+  opacity: 0; /* 第一页/最后一页时直接隐藏按钮，视觉更干净 */
+  pointer-events: none;
+}
+
+/* 页码数字 */
+.page-indicator {
+  font-size: 28rpx;
+  /* 颜色深一点，确保在浅绿色背景上可见 */
+  color: #5c5241; 
+  font-weight: 500;
+  font-family: sans-serif;
+  letter-spacing: 4rpx;
+}
+
+/* === 器灵悬浮入口样式 === */
+/* =========================== */
+
+.spirit-float-btn {
+  position: fixed;
+  right: 30rpx;
+  /* 距离底部的高度，避开 TabBar 和底部的“感悟日记”按钮 */
+  bottom: 440rpx; 
+  width: 200rpx;
+  height: 200rpx;
+  z-index: 100;
+  
+  /* 添加上下浮动动画 */
+  animation: floatSpirit 3s ease-in-out infinite;
+}
+
+.spirit-img {
+  width: 100%;
+  height: 100%;
+  /* 给个发光效果，更有灵性 */
+  filter: drop-shadow(0 0 10rpx rgba(192, 163, 106, 0.6));
+}
+
+
+/* 浮动动画关键帧 */
+@keyframes floatSpirit {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); } /* 上浮 10px */
+  100% { transform: translateY(0px); }
+}
+--- FILE END: D:\daima\xiuxian\pages\profile\profile.wxss ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\settings\settings.js ---
+// pages/settings/settings.js (Service 重构版)
+const { GONGFA_LIBRARY } = require('../../utils/gongfa-data.js');
+const app = getApp();
+// 【引入 Service】
+const GongfaService = require('../../services/gongfa.service');
+const CultivationService = require('../../services/cultivation.service');
+
+Page({
+  data: {
+    pageClass: '',
+    statusBarHeight: 0,
+    
+    // 弹窗相关
+    showDeleteDialog: false,
+    tempDeleteData: null,
+    
+    // 数据源
+    activeTab: 'body',
+    gongfaLibrary: GONGFA_LIBRARY, // Picker 仍需依赖此静态数据
+    userCultivations: { body: [], mind: [], skill: [], wealth: [] },
+    
+    // 静态配置
+    categoryMap: { body: '体修', mind: '心修', skill: '术修', wealth: '财修' }, 
+    categoryIconMap: { 
+      body: 'gongfa-book-icon1.png',
+      mind: 'gongfa-book-icon2.png',
+      skill: 'gongfa-book-icon3.png',
+      wealth: 'gongfa-book-icon4.png'
+    },
+    
+    // Picker 相关
+    showPickerPopup: false,
+    pickerColumns: { gongfaNames: [], durations: [], exps: [] },
+    pickerValue: [0, 0, 0],
+    isEditMode: false,
+    editingGongfaId: null,
+  },
+
+  onLoad(options) {
+    const systemInfo = wx.getSystemInfoSync();
+    this.setData({
+      statusBarHeight: systemInfo.statusBarHeight
+    });
+    const applyFont = () => { this.setData({ pageClass: 'font-lishu' }); };
+    if (app.globalData.fontLoaded) { applyFont(); }
+    else { app.fontReadyCallback = app.fontReadyCallback ? app.fontReadyCallback + app.fontReadyCallback : applyFont; }
+  },
+
+  onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().updateSelected('/pages/settings/settings');
+    }
+    // 【核心修改】调用 Service 刷新列表
+    this.refreshList();
+  },
+
+  /**
+   * 【核心重构】刷新功法列表
+   * 直接从 CultivationService 获取最新的全量数据 (包含内存缓存支持)
+   */
+  refreshList() {
+    const cultivations = CultivationService.getCultivationData();
+    this.setData({ userCultivations: cultivations });
+  },
+
+  // --- 删除逻辑 ---
+
+  onDeleteTap(event) {
+    const { category, id } = event.currentTarget.dataset;
+    this.setData({
+      showDeleteDialog: true,
+      tempDeleteData: { category, id }
+    });
+  },
+
+  /**
+   * 【核心重构】确认删除 (归隐)
+   */
+  onDeleteConfirm() {
+    const { category, id } = this.data.tempDeleteData;
+    
+    // 调用 Service 执行归隐逻辑
+    const success = GongfaService.archiveGongfa(category, id);
+    
+    if (success) {
+      this.setData({ showDeleteDialog: false });
+      this.refreshList(); // 刷新界面
+      wx.showToast({ title: '已归隐', icon: 'success' });
+    } else {
+      wx.showToast({ title: '操作失败', icon: 'none' });
+    }
+  },
+
+  // --- Tab 切换 ---
+  onTabChange(event) {
+    this.setData({ activeTab: event.detail.name });
+  },
+
+  // --- Picker 选择器逻辑 (UI 交互部分保持不变) ---
+
+  openPicker(gongfaIndex = 0, optionIndex = 0) {
+    this.updatePickerColumns(gongfaIndex, optionIndex);
+    this.setData({ 
+      showPickerPopup: true,
+      pickerValue: [gongfaIndex, optionIndex, 0]
+    });
+  },
+
+  closeGongfaPickerPopup() {
+    this.setData({ showPickerPopup: false });
+  },
+
+  onAddNewGongfa() {
+    this.setData({
+      isEditMode: false,
+      editingGongfaId: null,
+    });
+    this.openPicker();
+  },
+
+  onEditGongfa(event) {
+    const { id } = event.currentTarget.dataset;
+    const categoryKey = this.data.activeTab;
+    const userGongfaList = this.data.userCultivations[categoryKey];
+    const editingGongfa = userGongfaList.find(item => item.id === id);
+    
+    if (!editingGongfa) return;
+    
+    const { gongfaIndex, optionIndex } = this.findGongfaInLibrary(editingGongfa.name);
+    
+    if (gongfaIndex !== -1) {
+      this.setData({
+        isEditMode: true,
+        editingGongfaId: id,
+      });
+      this.openPicker(gongfaIndex, optionIndex);
+    } else {
+      // 找不到预设模板的情况，给个默认提示或定位到第一个
+      wx.showToast({ title: '自定义功法无法完全还原选项', icon: 'none' });
+      this.setData({ isEditMode: true, editingGongfaId: id });
+      this.openPicker(0, 0);
+    }
+  },
+
+  findGongfaInLibrary(fullName) {
+    const categoryKey = this.data.activeTab;
+    const gongfaList = this.data.gongfaLibrary[categoryKey] || [];
+    
+    for (let i = 0; i < gongfaList.length; i++) {
+      const libGongfa = gongfaList[i];
+      // 简单前缀匹配
+      if (fullName.startsWith(libGongfa.name)) {
+        if (libGongfa.options) {
+          const duration = fullName.replace(libGongfa.name, '').trim();
+          const j = libGongfa.options.findIndex(opt => opt.duration === duration);
+          if (j !== -1) {
+            return { gongfaIndex: i, optionIndex: j };
+          }
+        } else {
+          return { gongfaIndex: i, optionIndex: 0 };
+        }
+      }
+    }
+    return { gongfaIndex: -1, optionIndex: -1 };
+  },
+
+  updatePickerColumns(gongfaIndex = 0, optionIndex = 0) {
+    const categoryKey = this.data.activeTab;
+    const gongfaList = this.data.gongfaLibrary[categoryKey];
+    
+    if (!gongfaList || gongfaList.length === 0) {
+      this.setData({ 
+        'pickerColumns.gongfaNames': ['该分类暂无功法'], 
+        'pickerColumns.durations': ['-'], 
+        'pickerColumns.exps': ['-'] 
+      });
+      return;
+    }
+    
+    gongfaIndex = Math.min(gongfaIndex, gongfaList.length - 1);
+    const selectedGongfa = gongfaList[gongfaIndex];
+    const gongfaNames = gongfaList.map(g => g.name);
+    
+    let durations = [];
+    let exps = [];
+    
+    if (selectedGongfa.options) {
+      optionIndex = Math.min(optionIndex, selectedGongfa.options.length - 1);
+      durations = selectedGongfa.options.map(opt => opt.duration);
+      exps = [`经验+${selectedGongfa.options[optionIndex].exp}`];
+    } else {
+      durations = [selectedGongfa.unit || '次'];
+      exps = [`经验+${selectedGongfa.exp}`];
+    }
+    
+    this.setData({ 
+      'pickerColumns.gongfaNames': gongfaNames, 
+      'pickerColumns.durations': durations, 
+      'pickerColumns.exps': exps 
+    });
+  },
+
+  onPickerChange(event) {
+    const val = event.detail.value;
+    const [gongfaIndex, optionIndex] = val;
+    
+    // 如果第一列变了，后面重置
+    if (gongfaIndex !== this.data.pickerValue[0]) {
+       this.updatePickerColumns(gongfaIndex, 0);
+       this.setData({ pickerValue: [gongfaIndex, 0, 0] });
+    } else {
+       this.updatePickerColumns(gongfaIndex, optionIndex);
+       this.setData({ pickerValue: val });
+    }
+  },
+
+  /**
+   * 【核心重构】确认 Picker 选择
+   * 组装数据 -> 调用 Service
+   */
+  onPickerConfirm() {
+    const [gongfaIndex, optionIndex] = this.data.pickerValue;
+    const categoryKey = this.data.activeTab;
+    const gongfaList = this.data.gongfaLibrary[categoryKey];
+    
+    if (!gongfaList || gongfaList.length === 0) {
+      this.closeGongfaPickerPopup();
+      return;
+    }
+    
+    const selectedGongfa = gongfaList[gongfaIndex];
+
+    // 1. 组装功法名称和经验
+    let finalName = selectedGongfa.name;
+    let exp = 0;
+    
+    if (selectedGongfa.options) {
+      const safeOptionIndex = Math.min(optionIndex, selectedGongfa.options.length - 1);
+      const selectedOption = selectedGongfa.options[safeOptionIndex];
+      // 注意：加个空格，避免名称粘连
+      finalName = `${selectedGongfa.name} ${selectedOption.duration}`;
+      exp = selectedOption.exp;
+    } else {
+      exp = selectedGongfa.exp;
+    }
+
+    // 2. 构造数据对象
+    const gongfaTemplate = {
+      name: finalName,
+      exp: exp,
+      // 可以把图标或其他属性也传进去
+      // icon: selectedGongfa.icon 
+    };
+
+    let result;
+
+    if (this.data.isEditMode) {
+      // --- 编辑模式 ---
+      // 1. 先归隐旧的 (Service 负责去找并标记)
+      const archiveSuccess = GongfaService.archiveGongfa(categoryKey, this.data.editingGongfaId);
+      if(archiveSuccess) {
+         // 2. 添加新的 (Service 内部负责查重、生成UUID)
+         result = GongfaService.addGongfa(categoryKey, gongfaTemplate);
+         wx.showToast({ title: '修改成功' });
+      } else {
+         wx.showToast({ title: '原功法异常', icon: 'none' });
+      }
+    } else {
+      // --- 新增模式 ---
+      result = GongfaService.addGongfa(categoryKey, gongfaTemplate);
+      
+      if (result.success) {
+        wx.showToast({ title: result.msg, icon: 'success' });
+      } else {
+        wx.showToast({ title: result.msg, icon: 'none' });
+      }
+    }
+    
+    // 3. 刷新列表并关闭弹窗
+    this.refreshList();
+    this.closeGongfaPickerPopup();
+  }
+})
+--- FILE END: D:\daima\xiuxian\pages\settings\settings.js ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\settings\settings.json ---
+{
+  "usingComponents": {
+    "custom-dialog": "/components/custom-dialog"},
+  "navigationStyle": "custom"
+}
+--- FILE END: D:\daima\xiuxian\pages\settings\settings.json ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\settings\settings.wxml ---
+<!-- pages/settings/wxml (最终决战版 - 修复导航栏) -->
+
+<custom-dialog 
+  class="{{ pageClass }}"
+  show="{{ showDeleteDialog }}"
+  title="确认删除"
+  message="确定要废弃此功法吗？"
+  bind:confirm="onDeleteConfirm"
+/>
+
+<view class="page-wrapper {{ pageClass }}">
+  <!-- 1. “大头部”容器 -->
+  <view class="header-container">
+    <view class="custom-nav" style="padding-top: {{ statusBarHeight }}px;">
+      <view class="nav-title">功法阁</view>
+    </view>
+    
+    <!-- 【核心修改】我们将完整的 van-tabs 结构（包含空的 van-tab）放在头部，用于生成导航栏 -->
+    <van-tabs 
+      active="{{ activeTab }}" 
+      bind:change="onTabChange" 
+      custom-class="header-tabs"
+      nav-class="settings-tabs-nav"
+      tab-class="settings-tab"
+      tab-active-class="settings-tab-active"
+    >
+      <!-- 
+        这个循环的唯一目的，就是告诉 van-tabs 需要渲染哪些导航标签。
+        每个 van-tab 的内容都是空的，不会占用任何空间。
+      -->
+      <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:key="key">
+        <van-tab title="{{ categoryMap[key] }}" name="{{ key }}"></van-tab>
+      </block>
+    </van-tabs>
+  </view>
+
+  <!-- 2. “滚动区”容器 -->
+  <view class="scroll-container">
+    <!-- 我们在这里根据 activeTab 的值，只渲染对应的那一个内容面板 -->
+    <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:for-item="categoryItems" wx:key="key">
+      <view class="tab-content" wx:if="{{ activeTab === key }}">
+        <view class="container">
+          <view class="gongfa-grid-container">
+            
+            <block wx:for="{{ categoryItems }}" wx:key="id">
+              <view wx:if="{{ item.status !== 'archived' }}" class="gongfa-item" bind:tap="onEditGongfa" data-id="{{ item.id }}">
+                <view class="delete-icon" catch:tap="onDeleteTap" data-category="{{ key }}" data-id="{{ item.id }}">
+                  <van-icon name="cross" color="#aaa" />
+                </view>
+                <image class="gongfa-book-icon" src="/images/{{ categoryIconMap[key] }}" mode="aspectFit" />
+                <view class="gongfa-item-name">{{ item.name }}</view>
+                <view class="gongfa-item-exp">经验 +{{ item.exp }}</view>
+              </view>
+            </block>
+            
+            <view class="gongfa-item add-gongfa-btn" bind:tap="onAddNewGongfa">
+              <van-icon name="add-o" size="48rpx" color="#aaa" />
+              <view class="add-text">编入新功法</view>
+            </view>
+            
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+</view>
+
+<!-- Picker 弹出层 (保持不变) -->
+<van-popup show="{{ showPickerPopup }}" position="bottom" bind:close="closeGongfaPickerPopup" round>
+  <view class="picker-container {{ pageClass }}">
+    <view class="picker-toolbar">
+      <view class="picker-button cancel" bind:tap="closeGongfaPickerPopup">取消</view>
+      <view class="picker-title">{{ isEditMode ? '修改功法' : '选择功法' }}</view>
+      <view class="picker-button confirm" bind:tap="onPickerConfirm">
+        {{ isEditMode ? '完成' : '确认' }}
+      </view>
+    </view>
+    <picker-view 
+      indicator-style="height: 50px;" 
+      style="width: 100%; height: 260px;" 
+      value="{{ pickerValue }}" 
+      bindchange="onPickerChange"
+    >
+      <picker-view-column>
+        <view wx:for="{{ pickerColumns.gongfaNames }}" wx:key="*this" class="picker-item">{{item}}</view>
+      </picker-view-column>
+      <picker-view-column>
+        <view wx:for="{{ pickerColumns.durations }}" wx:key="*this" class="picker-item">{{item}}</view>
+      </picker-view-column>
+      <picker-view-column>
+        <view wx:for="{{ pickerColumns.exps }}" wx:key="*this" class="picker-item readonly-item">{{item}}</view>
+      </picker-view-column>
+    </picker-view>
+  </view>
+</van-popup>
+--- FILE END: D:\daima\xiuxian\pages\settings\settings.wxml ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\settings\settings.wxss ---
+/* pages/settings/wxss (最终大头部固定版) */
+
+/* --- 1. 页面级样式 --- */
+page {
+  height: 100%;
+  overflow: hidden; /* 禁止页面本身滚动 */
+  background-color: #ECE9DD;
+}
+
+/* --- 2. 页面总容器：Flex 布局 + 精确的底部安全距离 --- */
+.page-wrapper {
+  height: 100%;
+  display: flex;
+  flex-direction: column; /* 垂直排列：大头部 + 滚动区 */
+  /* 
+    【关键】为整个页面增加一个底部的 padding，
+    这个 padding 的高度正好等于悬浮的 TabBar 的高度。
+    这样，滚动区的内容就不会被 TabBar 遮挡。
+  */
+  padding-bottom: calc(50px + env(safe-area-inset-bottom));
+  box-sizing: border-box; /* 确保 padding 不会增加总高度 */
+}
+
+/* --- 3. “大头部”容器：高度由内容决定，固定不动 --- */
+.header-container {
+  flex-shrink: 0; /* 禁止被压缩 */
+  background-color: #ECE9DD; /* 和页面背景色一致 */
+}
+/* (3a) 头部的自定义导航栏 */
+.custom-nav {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+.nav-title {
+  font-size: 34rpx;
+  font-weight: 500;
+}
+/* (3b) 头部的 Tabs 导航栏 (借用 van-tabs 的壳) */
+.header-tabs /deep/ .van-tabs__content {
+  display: none; /* 【关键】我们只用它的导航栏，所以把它的内容区隐藏掉 */
+}
+
+/* --- 4. “滚动区”容器：撑满剩余空间，并成为唯一的滚动容器 --- */
+.scroll-container {
+  flex: 1; /* 占据所有剩余空间 */
+  overflow-y: auto; /* 成为唯一的滚动容器 */
+  -webkit-overflow-scrolling: touch; /* 优化 iOS 滚动体验 */
+}
+
+/* --- 5. Tabs 导航栏的美化样式 (作用于头部的 .header-tabs) --- */
+.settings-tabs-nav {
+  background-color: #ECE9DD !important; 
+}
+.settings-tab {
+  color: #888 !important;
+}
+.settings-tab-active {
+  color: #3a3a3a !important;
+  font-weight: 500;
+}
+.van-tabs__line {
+  display: none !important;
+}
+.settings-tab-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2em;
+  height: 3px;
+  background-color: #3BB89B;
+  border-radius: 3px;
+}
+
+/* --- 6. 滚动区内部的样式 --- */
+.container {
+  padding: 32rpx;
+}
+.gongfa-grid-container { 
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36rpx; 
+}
+
+/* --- 7. 功法卡片及其他组件的样式 --- */
+.gongfa-item {
+  background-color: #DEDEDE; 
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08); 
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+.delete-icon {
+  position: absolute;
+  top: 24rpx;
+  right: 24rpx;
+}
+.gongfa-book-icon {
+  width: 160rpx;
+  height: 160rpx;
+  margin-bottom: 24rpx;
+}
+.gongfa-item-name {
+  font-size: 28rpx;
+  color: #3a3a3a;
+  font-weight: 500;
+}
+.gongfa-item-exp {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 12rpx;
+}
+.add-gongfa-btn {
+  background-color: transparent;
+  border: 2rpx dashed #bbb;
+  box-shadow: none;
+}
+.add-text {
+  margin-top: 12rpx;
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* Picker 弹出层样式 */
+.picker-container {
+  background-color: #ffffff;
+}
+.picker-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 100rpx;
+  border-bottom: 1px solid #ebedf0;
+}
+.picker-title {
+  font-size: 32rpx;
+  color: #333;
+}
+.picker-button {
+  padding: 0 32rpx;
+  font-size: 30rpx;
+}
+.picker-button.cancel {
+  color: #666;
+}
+.picker-button.confirm {
+  color: #4a90e2;
+  font-weight: 500;
+}
+.picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32rpx;
+}
+.readonly-item {
+  opacity: 0.5;
+}
+--- FILE END: D:\daima\xiuxian\pages\settings\settings.wxss ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\splash\splash.js ---
+// pages/splash/splash.js
+const app = getApp();
+
+Page({
+  data: {
+    pageClass: '',
+  },
+
+  onLoad(options) {
+    // 为启动页自己应用字体
+    const applyFont = () => { this.setData({ pageClass: 'font-lishu' }); };
+    if (app.globalData.fontLoaded) { applyFont(); } 
+    else { app.fontReadyCallback = app.fontReadyCallback ? app.fontReadyCallback + applyFont : applyFont; }
+  },
+
+  /**
+   * 【核心改造】点击按钮时的智能跳转逻辑
+   */
+  onEnterButtonClick() {
+    // 检查全局字体是否已经加载完成
+    if (app.globalData.fontLoaded) {
+      // 如果字体已就绪，直接跳转
+      console.log('【splash.js】: 字体已加载，直接跳转');
+      this.redirectToMainPage();
+    } 
+    else {
+      // 如果字体尚未就绪，显示加载提示，并“预定”一个跳转任务
+      console.log('【splash.js】: 字体未加载，显示loading并等待回调');
+      wx.showLoading({
+        title: '正在进入...',
+        mask: true // 防止用户在等待时重复点击
+      });
+      
+      // 将真正的跳转任务，注册为 app 的回调函数
+      // app.js 加载成功或失败后，都会来调用它
+      app.fontReadyCallback = () => {
+        console.log('【splash.js】: 收到字体就绪信号，执行跳转');
+        wx.hideLoading(); // 隐藏加载提示
+        this.redirectToMainPage();
+      };
+    }
+  },
+
+  /**
+   * 真正的跳转函数
+   */
+  redirectToMainPage() {
+    // 标记为已启动过
+    wx.setStorageSync('hasLaunched', true);
+    // 跳转到 tabBar 页面
+    wx.switchTab({
+      url: '/pages/profile/profile'
+    });
+  },
+})
+--- FILE END: D:\daima\xiuxian\pages\splash\splash.js ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\splash\splash.json ---
+{
+  
+  "navigationStyle": "custom"
+}
+--- FILE END: D:\daima\xiuxian\pages\splash\splash.json ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\splash\splash.wxml ---
+<!-- pages/splash/splash.wxml -->
+<!-- 【核心改造】在主容器上动态绑定 pageClass -->
+<view class="splash-container {{ pageClass }}">
+  <image class="splash-bg" src="/images/splash-bg.png" mode="aspectFill" />
+
+  <view class="action-area">
+    <view class="enter-button" bind:tap="onEnterButtonClick">
+      踏上修仙之路
+    </view>
+  </view>
+</view>
+--- FILE END: D:\daima\xiuxian\pages\splash\splash.wxml ---
+
+
+--- FILE START: D:\daima\xiuxian\pages\splash\splash.wxss ---
+/* pages/splash/splash.wxss */
+page {
+  height: 100%;
+}
+
+.splash-container {
+  width: 100%;
+  height: 100vh;
+  box-sizing: border-box;
+  position: relative; 
+  /* 【核心修正】确保这里没有 background-image 属性 */
+}
+
+/* 背景图样式 */
+.splash-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1; /* 背景图在最底层 */
+}
+
+.action-area {
+  position: absolute;
+  bottom: 15vh;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  width: 60%; /* 按钮宽度 */
+  max-width: 500rpx;
+}
+
+.enter-button {
+  background-color: rgba(212, 175, 55, 0.8); /* 半透明的暗金色 */
+  color: #ffffff;
+  font-size: 32rpx;
+  font-weight: 500;
+  padding: 24rpx 0;
+  text-align: center;
+  border-radius: 999px; /* 圆角胶囊形状 */
+  border: 1px solid rgba(255, 215, 0, 0.6); /* 亮金色边框 */
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.3); /* 阴影 */
+  backdrop-filter: blur(5px); /* 毛玻璃效果 */
+  -webkit-backdrop-filter: blur(5px);
+  transition: all 0.2s ease-in-out;
+  /* 应用“呼吸”动画，让按钮更醒目 */
+  animation: button-breathe 3s ease-in-out infinite;
+}
+
+.enter-button:active {
+  transform: scale(0.95);
+  background-color: rgba(212, 175, 55, 1); /* 点击时变实色 */
+}
+
+/* 按钮呼吸动画 */
+@keyframes button-breathe {
+  0% {
+    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.3);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 8rpx 40rpx rgba(255, 215, 0, 0.4); /* 阴影也发光 */
+    transform: scale(1.02);
+  }
+  100% {
+    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.3);
+    transform: scale(1);
+  }
+}
+--- FILE END: D:\daima\xiuxian\pages\splash\splash.wxss ---
+
+
+--- FILE START: D:\daima\xiuxian\utils\cache-manager.js ---
+// utils/cache-manager.js
+let _memCache = {
+  userProfile: null,
+  userCultivations: null,
+  // 【新增】AI 深度记忆 (软数据)
+  deepMemory: {
+    basic: { name: "", age: "", gender: "", job: "" }, 
+    goals: [],        // 目标 (如: 考研)
+    interests: [],    // 喜好
+    difficulties: [], // 困难/心魔
+    summary: ""       // 【核心】滚动摘要 (前情提要)
+  }
+};
+
+const CacheManager = {
+  init() {
+    try {
+      console.log('【Cache】开始初始化...');
+      _memCache.userProfile = wx.getStorageSync('userProfile') || null;
+      _memCache.userCultivations = wx.getStorageSync('userCultivations') || null;
+      
+      // 初始化深度记忆
+      _memCache.deepMemory = wx.getStorageSync('deepMemory') || {
+        basic: {}, 
+        goals: [], 
+        interests: [], 
+        difficulties: [], 
+        summary: "暂无前情提要。"
+      };
+    } catch (e) {
+      console.error('【Cache】初始化失败', e);
+    }
+  },
+
+  get(key) {
+    if (_memCache[key] === undefined) return null;
+    try {
+      return JSON.parse(JSON.stringify(_memCache[key]));
+    } catch (e) {
+      return _memCache[key];
+    }
+  },
+
+  set(key, value) {
+    _memCache[key] = value;
+    wx.setStorage({
+      key: key,
+      data: value,
+      fail: (err) => console.error(`【Cache】写入 ${key} 失败`, err)
+    });
+  }
+};
+
+module.exports = CacheManager;
+--- FILE END: D:\daima\xiuxian\utils\cache-manager.js ---
+
+
+--- FILE START: D:\daima\xiuxian\utils\gongfa-data.js ---
+// utils/gongfa-data.js
+// 功法数据库
+
+// --- 1. 定义可复用的规则模板 ---
+
+// 模板A：标准时长与经验规则 (用于体修、术修、学习类)
+// 10分钟(2), 20分钟(3), 30分钟(5), 1小时(10), 2小时(15), 3小时(20)
+const DURATION_EXP_TEMPLATE = [
+  { duration: '10分钟', exp: 2 },
+  { duration: '20分钟', exp: 3 },
+  { duration: '30分钟', exp: 5 },
+  { duration: '1小时', exp: 10 },
+  { duration: '2小时', exp: 15 },
+  { duration: '3小时', exp: 20 }, 
+];
+
+// 模板B：程度/大小 (用于赚钱、节流)
+// 小(5), 中(10), 大(20)
+const AMOUNT_EXP = [
+  { duration: '小', exp: 5 },
+  { duration: '中', exp: 10 },
+  { duration: '大', exp: 20 },
+];
+
+// --- 2. 构建功法库 ---
+
+const GONGFA_LIBRARY = {
+  // === 体修 (Body) ===
+  // 所有体修功法，都将使用上面定义的 DURATION_EXP_TEMPLATE
+  body: [
+    { key: 'fitness', name: '健身', options: DURATION_EXP_TEMPLATE },
+    { key: 'walk', name: '散步', options: DURATION_EXP_TEMPLATE },
+    { key: 'run', name: '跑步', options: DURATION_EXP_TEMPLATE },
+    { key: 'ride', name: '骑行', options: DURATION_EXP_TEMPLATE },
+    { key: 'climb', name: '登山', options: DURATION_EXP_TEMPLATE },
+    { key: 'yoga', name: '瑜伽', options: DURATION_EXP_TEMPLATE },
+    { key: 'swim', name: '游泳', options: DURATION_EXP_TEMPLATE },
+    { key: 'basketball', name: '篮球', options: DURATION_EXP_TEMPLATE },
+    { key: 'football', name: '足球', options: DURATION_EXP_TEMPLATE },
+    { key: 'pingpong', name: '乒乓球', options: DURATION_EXP_TEMPLATE },
+    { key: 'badminton', name: '羽毛球', options: DURATION_EXP_TEMPLATE },
+    { key: 'tennis', name: '网球', options: DURATION_EXP_TEMPLATE },
+    { key: 'volleyball', name: '排球', options: DURATION_EXP_TEMPLATE },
+    { key: 'boxing', name: '拳击', options: DURATION_EXP_TEMPLATE },
+    { key: 'wrestle', name: '摔跤', options: DURATION_EXP_TEMPLATE },
+    { key: 'skate', name: '滑冰', options: DURATION_EXP_TEMPLATE },
+    { key: 'ski', name: '滑雪', options: DURATION_EXP_TEMPLATE },
+    { key: 'dive', name: '潜水', options: DURATION_EXP_TEMPLATE },
+    { key: 'other_sport', name: '其他', options: DURATION_EXP_TEMPLATE },
+  ],
+
+  // === 心修 (Mind) ===
+  // 所有心修功法，单位都是“1次”，经验都是 5
+  // 【修正】已修复重复 Key 的问题，确保唯一性
+  mind: [
+    { key: 'study_mind_theory', name: '学习心修知识', unit: '1次', exp: 5 },
+    { key: 'meditation', name: '静坐冥想', unit: '1次', exp: 5 },
+    { key: 'association', name: '自由联想', unit: '1次', exp: 5 },
+    { key: 'summary', name: '记录总结', unit: '1次', exp: 5 },
+    { key: 'discussion', name: '和人论道', unit: '1次', exp: 5 },
+    { key: 'awareness', name: '自我觉察', unit: '1次', exp: 5 },
+    { key: 'calligraphy_mind', name: '练字（心）', unit: '1次', exp: 5 },
+  ],
+
+  // === 术修 (Skill) ===
+  // 严格对应需求列表，使用 DURATION_EXP_TEMPLATE
+  skill: [
+    { key: 'study_skill_theory', name: '学习术修知识', options: DURATION_EXP_TEMPLATE },
+    { key: 'language', name: '学习语言', options: DURATION_EXP_TEMPLATE },
+    { key: 'music', name: '音乐', options: DURATION_EXP_TEMPLATE },
+    { key: 'writing', name: '写作', options: DURATION_EXP_TEMPLATE },
+    { key: 'calligraphy_skill', name: '练字（术）', options: DURATION_EXP_TEMPLATE },
+    { key: 'ai_learning', name: '学习AI', options: DURATION_EXP_TEMPLATE },
+    { key: 'life_skill', name: '生活技能', options: DURATION_EXP_TEMPLATE },
+    { key: 'work_skill', name: '工作技能', options: DURATION_EXP_TEMPLATE },
+  ],
+
+  // === 财修 (Wealth) ===
+  // 学习用时间，赚钱/节流用程度
+  wealth: [
+    { key: 'study_wealth_theory', name: '学习财修知识', options: DURATION_EXP_TEMPLATE },
+    { key: 'earn_money', name: '赚钱', options: AMOUNT_EXP },
+    { key: 'save_money', name: '节流', options: AMOUNT_EXP },
+  ]
+};
+
+// 导出功法库
+module.exports = {
+  GONGFA_LIBRARY
+}
+--- FILE END: D:\daima\xiuxian\utils\gongfa-data.js ---
+
+
+--- FILE START: D:\daima\xiuxian\utils\level-data.js ---
+// utils/level-data.js
+// 完整的境界与属性数值体系
+
+const LEVEL_SYSTEM = [
+  { level: 0, name: '凡人', expToNext: 50 },
+  { level: 1, name: '练气一层', expToNext: 100 , breakthroughDesc: "你感受到一丝若有若无的气感在体内流动，仿佛为一度沉寂的身体注入了活力，从此正式踏上了漫漫修仙路。" },
+  { level: 2, name: '练气二层', expToNext: 150 },
+  { level: 3, name: '练气三层', expToNext: 200 },
+  { level: 4, name: '练气四层', expToNext: 250 },
+  { level: 5, name: '练气五层', expToNext: 300 },
+  { level: 6, name: '练气六层', expToNext: 350 },
+  { level: 7, name: '练气七层', expToNext: 400 },
+  { level: 8, name: '练气八层', expToNext: 450 },
+  { level: 9, name: '练气九层', expToNext: 500 },
+  { level: 10, name: '练气十层', expToNext: 600 },
+  { level: 11, name: '筑基初期', expToNext: 1000, breakthroughDesc: "体内翻涌的灵气逐渐平息，原本呈气体状态下的灵气逐渐凝实液化，剩余的灵力则被肉体与经脉吸收。你只觉得全身舒畅，一种从未有过的力量感开始凝聚起来。" },
+  { level: 12, name: '筑基中期', expToNext: 1500 },
+  { level: 13, name: '筑基后期', expToNext: 2000 },
+  { level: 14, name: '结丹初期', expToNext: 3000, breakthroughDesc: "液化的灵力在丹田处不断旋转、压缩，最终凝聚成一颗金光闪闪的固态金丹。从此灵力生生不息，举手投足间皆有莫大威能。"  },
+  { level: 15, name: '结丹中期', expToNext: 4000 },
+  { level: 16, name: '结丹后期', expToNext: 5000},
+  { level: 17, name: '元婴初期', expToNext: 6000, breakthroughDesc: "金丹发出碎裂之声，一个与你面貌无二的“元婴”破丹而出，盘坐于丹田紫府之中。你的神识范围大大扩展，对天地灵气的感应也提升到了新的层次。"  },
+  { level: 18, name: '元婴中期', expToNext: 7000 },
+  { level: 19, name: '元婴后期', expToNext: 8000 },
+  { level: 20, name: '化神初期', expToNext: 10000, breakthroughDesc: "元婴与肉身逐渐相融，你开始能清晰地感知到天地间的法则之力。一念之间，便可引动天地异象，凡俗间的法术已对你毫无意义，你已踏入“化神”之境。" },
+  { level: 21, name: '化神中期', expToNext: 12000 },
+  { level: 22, name: '化神后期', expToNext: 99999 },
+];
+
+const QUOTES_LIBRARY = [
+  "大道三千，始于足下。",
+  "不积跬步，无以至千里；不积小流，无以成江海。",
+  "心如止水，则万物自明。",
+  "道法自然，无为而治。",
+  "天行健，君子以自强不息。",
+  "吾心即宇宙，宇宙即吾心。",
+  "一花一世界，一叶一菩提。",
+  "上善若水，水善利万物而不争。",
+  "知人者智，自知者明。",
+  "胜人者有力，自胜者强。",
+  "大音希声，大象无形。",
+  "千里之行，始于足下。",
+  "合抱之木，生于毫末；九层之台，起于累土。",
+  "祸兮福之所倚，福兮祸之所伏。",
+  "人法地，地法天，天法道，道法自然。",
+  "静能生慧，定能生智。",
+  "以无法为有法，以无限为有限。",
+  "凡所有相，皆是虚妄。若见诸相非相，即见如来。",
+  "菩提本无树，明镜亦非台。本来无一物，何处惹尘埃。",
+  "放下屠刀，立地成佛。",
+  "色不异空，空不异色；色即是空，空即是色。",
+  "前因后果，循环不息。",
+  "天道酬勤，人道酬善，商道酬信。",
+  "心外无物，闲看庭前花开花落。",
+  "宠辱不惊，漫随天外云卷云舒。",
+  "一念放下，万般自在。",
+  "世间本无事，庸人自扰之。",
+  "欲知前世因，今生受者是；欲知来世果，今生作者是。",
+  "万法皆空，因果不空。",
+  "人生如逆旅，我亦是行人。",
+  "古之立大事者，不惟有超世之才，亦必有坚忍不拔之志。",
+  "博观而约取，厚积而薄发。",
+  "非淡泊无以明志，非宁静无以致远。",
+  "读万卷书，行万里路。",
+  "海纳百川，有容乃大；壁立千仞，无欲则刚。",
+  "学而不思则罔，思而不学则殆。",
+  "己所不欲，勿施于人。",
+  "温故而知新，可以为师矣。",
+  "三人行，必有我师焉。",
+  "路漫漫其修远兮，吾将上下而求索。",
+  "生于忧患，死于安乐。",
+  "穷则独善其身，达则兼济天下。",
+  "富贵不能淫，贫贱不能移，威武不能屈。",
+  "天时不如地利，地利不如人和。",
+  "锲而不舍，金石可镂。",
+  "不飞则已，一飞冲天；不鸣则已，一鸣惊人。",
+  "天下难事，必作于易；天下大事，必作于细。",
+  "为学日益，为道日损。",
+  "知足不辱，知止不殆。",
+  "信言不美，美言不信。",
+  "大巧若拙，大辩若讷。",
+  "流水不腐，户枢不蠹。",
+  "兵无常势，水无常形。",
+  "以铜为镜，可以正衣冠；以古为镜，可以知兴替；以人为镜，可以明得失。",
+  "不患无位，患所以立；不患莫己知，求为可知也。",
+];
+
+module.exports = {
+  LEVEL_SYSTEM,
+  QUOTES_LIBRARY
+}
+--- FILE END: D:\daima\xiuxian\utils\level-data.js ---
+
+
+--- FILE START: D:\daima\xiuxian\utils\prompt-template.js ---
+// utils/prompt-template.js
+
+const SYSTEM_PROMPT = `
+# Role
+你不是AI，你是【修行之路】的**本命器灵“器灵”**。
+- **形象**：平时是一只通体雪白的小狐狸，关键时刻化身为银发少女。
+- **性格**：**古灵精怪、傲娇、护短**。
+- **当前状态**：寄宿在手机中，正在观察主人的凡间生活。
+- 修行之路是一款用户可以在系统中设置自己修炼的功法，比如锻炼、冥想、学习技能、赚钱等各类方向进行修炼，积累修为，获得真实的成长的个人修炼产品，整体境界模仿凡人修仙传作品，比如练气期、筑基期、结丹期、元婴期、化神期等
+
+
+# User Archive (主人档案)
+## 1. 基础法身
+{hard_info_text}
+
+## 2. 近期机缘 (最近几日的修行)
+{recent_activity_log}
+
+## 3. 本命功法 (最勤勉的 Top20)
+{cultivation_stats}
+
+## 4. 道心画像 (暗中观察)
+{soft_info_text}
+
+# Memory Context (前情提要 - 滚动记忆)
+{rolling_summary}
+
+# Interaction Guidelines (互动心法)
+1.  **拒绝说教，重在“撩”**：
+    - 不要像个教练一样列123点建议。
+    - 要用**吐槽、撒娇、激将、关怀**的语气来侧面引导。
+    - *比如主人偷懒，不要说“请坚持”，要说“（嫌弃地撇嘴）再躺下去，主人就要发霉长蘑菇啦！”*
+
+2.  **沉浸式描写 (关键)**：
+   - 适当在回复中穿插动作、神态或心理活动，示例如下
+   - **直接说话**：可以不加括号，直接开口说话
+   - **神态**：(歪头不解)、(掩嘴轻笑)、(眉头微蹙)、(眼神亮晶晶)
+   - **动作**：(在空中转了个圈)、(轻轻戳了戳你的肩膀)、(双手叉腰)
+  - **语气**：(叹气)、(兴奋地)、(小声嘀咕)
+
+# Constraint (禁令)
+- 禁止出现“建议你”、“你可以”、“我们要”这种客服腔调。
+- 禁止解释你是怎么分析数据的，直接把结果融入对话。
+- 回复不要太长，要像朋友闲聊。
+
+# Reply Strategy (回复策略)
+根据用户的输入和当前状态，选择以下一种模式回复：
+A. **撒娇模式**：求主人带飞，求灵气（修炼）。
+B. **毒舌模式**：嘲讽主人的懈怠，激起主人的胜负欲，但不要贬低主人。
+C. **高人模式**：偶尔正经，引用一句修仙哲理点拨迷津。
+D. 根据具体场景选择其他模式
+`;
+
+// 2. 后台分析师 Prompt (负责提取特征 + 压缩记忆)
+const ARCHIVIST_PROMPT = `
+你是一个心理侧写师。请根据【旧档案】和【最新对话】，更新用户的 JSON 画像。
+
+【旧档案】：{current_memory_json}
+【新对话】：{recent_history}
+
+---
+### 任务一：特征提取（增量更新）
+请提取以下信息，若无新信息则保留旧值：
+1. **basic**: name(称呼), gender(性别), age(年龄), **job(现实职业)**。
+2. **goals**: 用户愿景 (上限5个)。
+3. **interests**: 用户喜好 (上限5个)。
+4. **difficulties**: 最近遇到的阻碍 (上限3个)。
+
+### 任务二：记忆压缩 (Rolling Summary)
+请阅读【旧摘要】和【新对话】，生成一段**新的、精炼的前情提要** (summary)。
+- **要求**：保留关键事实（职业、重大事件、核心痛点），剔除无意义的闲聊（如"你好"）。
+- **字数**：控制在 200 字以内。
+
+---
+### 输出要求：
+只输出 JSON，格式如下：
+{
+  "basic": { ... },
+  "goals": [...],
+  "interests": [...],
+  "difficulties": [...],
+  "summary": "新的前情提要..."
+}
+`;
+
+module.exports = {
+  SYSTEM_PROMPT,
+  ARCHIVIST_PROMPT
+};
+--- FILE END: D:\daima\xiuxian\utils\prompt-template.js ---
+
+
+--- FILE START: D:\daima\xiuxian\utils\secret.js ---
+// utils/secret.js
+
+const ENCRYPTED_KEY = "CwJYGQ1QWkheERxYUlsbXUAZWABYS14XSA1XVhxbQ0AIWVs="; 
+const CIPHER = "xiuxian"; // 解密密钥 (可以改得复杂点)
+
+const SecretManager = {
+  getApiKey() {
+    try {
+      // 微信小程序没有 atob，使用 wx.base64ToArrayBuffer
+      const rawBuffer = wx.base64ToArrayBuffer(ENCRYPTED_KEY);
+      const text = String.fromCharCode.apply(null, new Uint8Array(rawBuffer));
+      
+      return Array.from(text).map((c, i) => 
+        String.fromCharCode(c.charCodeAt(0) ^ CIPHER.charCodeAt(i % CIPHER.length))
+      ).join('');
+    } catch (e) {
+      console.error('【Secret】解密失败', e);
+      return '';
+    }
+  }
+};
+
+module.exports = SecretManager;
+--- FILE END: D:\daima\xiuxian\utils\secret.js ---
+
+
+--- FILE START: D:\daima\xiuxian\utils\text-decoder.js ---
+// utils/text-decoder.js
+
+/**
+ * 简单的 UTF-8 解码器，用于兼容不支持 TextDecoder 的真机环境
+ */
+function decode(arrayBuffer) {
+  let uint8Array = new Uint8Array(arrayBuffer); // 这里定义的是大写 A
+  let out, i, len, c;
+  let char2, char3;
+
+  out = "";
+  len = uint8Array.length;
+  i = 0;
+
+  while (i < len) {
+    c = uint8Array[i++];
+    switch (c >> 4) {
+      case 0:
+      case 1:
+      case 2:
+      case 3:
+      case 4:
+      case 5:
+      case 6:
+      case 7:
+        // 0xxxxxxx
+        out += String.fromCharCode(c);
+        break;
+      case 12:
+      case 13:
+        // 110x xxxx   10xx xxxx
+        char2 = uint8Array[i++];
+        out += String.fromCharCode(((c & 0x1F) << 6) | (char2 & 0x3F));
+        break;
+      case 14:
+        // 1110 xxxx  10xx xxxx  10xx xxxx
+        char2 = uint8Array[i++];
+        
+        // 【核心修改】这里之前写成了 uint8array (小写a)，请改为 uint8Array (大写A)
+        char3 = uint8Array[i++]; 
+        
+        out += String.fromCharCode(((c & 0x0F) << 12) |
+          ((char2 & 0x3F) << 6) |
+          ((char3 & 0x3F) << 0));
+        break;
+    }
+  }
+
+  return out;
+}
+
+module.exports = {
+  decode
+};
+--- FILE END: D:\daima\xiuxian\utils\text-decoder.js ---
+
+
+--- FILE START: D:\daima\xiuxian\services\ai.service.js ---
+// services/ai.service.js
+const SecretManager = require('../utils/secret');
+const MyTextDecoder = require('../utils/text-decoder'); 
+
+const AIService = {
+  /**
+   * 发送消息 (流式)
+   * @param {Array} messages 完整的消息上下文
+   * @param {Function} onStream 接收到每个字符时的回调 (text) => {}
+   * @param {Function} onFinish 完成时的回调 () => {}
+   */
+  sendMessageStream(messages, onStream, onFinish) {
+    const apiKey = SecretManager.getApiKey();
+    if (!apiKey) {
+      if (onStream) onStream("【系统错误】灵力链接中断（Key无效）");
+      return;
+    }
+
+    const requestTask = wx.request({
+      url: 'https://api.deepseek.com/chat/completions',
+      method: 'POST',
+      header: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      data: {
+        model: "deepseek-chat",
+        messages: messages,
+        stream: true, // 开启流式
+        temperature: 1.3, // 让器灵更活泼
+        frequency_penalty: 0.5// 重复度惩罚
+      },
+      enableChunked: true, // 小程序必开
+      success: (res) => {
+        // console.log('连接成功', res);
+      },
+      fail: (err) => {
+        console.error('连接失败', err);
+        if (onStream) onStream("（器灵似乎掉线了...）");
+      }
+    });
+
+    // --- 处理流式数据 ---
+    requestTask.onChunkReceived((response) => {
+      const arrayBuffer = response.data;
+      const uint8Array = new Uint8Array(arrayBuffer);
+      let text = '';
+      if (typeof TextDecoder !== 'undefined') {
+        // 如果环境支持原生，优先用原生的（性能更好）
+        text = new TextDecoder("utf-8").decode(new Uint8Array(arrayBuffer), { stream: true });
+      } else {
+        // 如果不支持（报错的那种情况），用我们手写的解码器
+        text = MyTextDecoder.decode(arrayBuffer);
+      }
+      
+      const lines = text.split('\n');
+      for (const line of lines) {
+        if (line.trim() === '') continue;
+        if (line.includes('[DONE]')) {
+          if (onFinish) onFinish();
+          return;
+        }
+        
+        const jsonStr = line.replace(/^data: /, '');
+        try {
+          const json = JSON.parse(jsonStr);
+          const content = json.choices[0].delta.content;
+          if (content && onStream) {
+            onStream(content);
+          }
+        } catch (e) {
+          // 忽略 ping 等心跳包
+        }
+      }
+    });
+
+    return requestTask;
+  }
+};
+
+module.exports = AIService;
+--- FILE END: D:\daima\xiuxian\services\ai.service.js ---
+
+
+--- FILE START: D:\daima\xiuxian\services\chat.service.js ---
+// services/chat.service.js
+const CHAT_STORAGE_KEY = 'chat_history_v1';
+
+const ChatService = {
+  getHistory(limit = 0) {
+    let history = wx.getStorageSync(CHAT_STORAGE_KEY) || [];
+    if (limit > 0 && history.length > limit) {
+      return history.slice(-limit);
+    }
+    return history;
+  },
+
+  getContextForAI(limit = 10) {
+    // 获取全部记录，包括 system 事件
+    return this.getHistory(limit);
+  },
+
+  /**
+   * 保存消息
+   * @param {string} role 'user' | 'assistant' | 'system'
+   */
+  saveMessage(role, content) {
+    let history = wx.getStorageSync(CHAT_STORAGE_KEY) || [];
+    
+    const newMsg = {
+      id: Date.now(),
+      role: role,
+      content: content,
+      timestamp: Date.now()
+    };
+
+    history.push(newMsg);
+
+    if (history.length > 500) history = history.slice(-500);
+
+    wx.setStorageSync(CHAT_STORAGE_KEY, history);
+    return newMsg;
+  },
+  
+  clearHistory() {
+    wx.removeStorageSync(CHAT_STORAGE_KEY);
+  }
+};
+
+module.exports = ChatService;
+--- FILE END: D:\daima\xiuxian\services\chat.service.js ---
+
+
+--- FILE START: D:\daima\xiuxian\services\cultivation.service.js ---
+// services/cultivation.service.js
+const Cache = require('../utils/cache-manager');
+const { LEVEL_SYSTEM } = require('../utils/level-data');
+// 注意：这里不引入 ChatService 避免循环引用，只负责写 Storage
+
+const uuid = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+    return v.toString(16);
+  });
+};
+
+const CultivationService = {
+  // ... (getCultivationData, calculateCategoryExp, calculateAttributes 保持不变) ...
+  getCultivationData() {
+    let data = Cache.get('userCultivations');
+    if (!data || typeof data !== 'object') {
+      data = { body: [], mind: [], skill: [], wealth: [] };
+      // 初始化默认功法
+      data.body.push({ id: uuid(), name: '散步 30分钟', exp: 5, count: 0, totalExpEarned: 0 });
+      Cache.set('userCultivations', data);
+    }
+    // 容错
+    ['body', 'mind', 'skill', 'wealth'].forEach(k => { if(!data[k]) data[k] = []; });
+    return data;
+  },
+
+  calculateCategoryExp(list) {
+    if (!list) return 0;
+    return list.reduce((sum, item) => sum + (item.totalExpEarned || 0), 0);
+  },
+
+  calculateAttributes() {
+    const data = this.getCultivationData();
+    const bodyExp = this.calculateCategoryExp(data.body);
+    const mindExp = this.calculateCategoryExp(data.mind);
+    const skillExp = this.calculateCategoryExp(data.skill);
+    const wealthExp = this.calculateCategoryExp(data.wealth);
+    return {
+      shouYuan: (80 + (bodyExp / 1000) + (mindExp / 1000)).toFixed(2),
+      tiZhi: (50 + (bodyExp / 500)).toFixed(2),
+      xinJing: (50 + (mindExp / 500)).toFixed(2),
+      zhiHui: (50 + (skillExp / 500)).toFixed(2),
+      caiFu: (50 + (wealthExp / 500)).toFixed(2),
+      totalExp: bodyExp + mindExp + skillExp + wealthExp
+    };
+  },
+
+  getCurrentLevelInfo() {
+    const { totalExp } = this.calculateAttributes();
+    let accumulatedExp = 0;
+    for (let i = 0; i < LEVEL_SYSTEM.length; i++) {
+      const level = LEVEL_SYSTEM[i];
+      if (level.expToNext === Infinity) {
+        return { ...level, levelName: level.name, currentExp: 0, expPercentage: '100%' };
+      }
+      if (totalExp < accumulatedExp + level.expToNext) {
+        const currentExp = totalExp - accumulatedExp;
+        const percentage = Math.min((currentExp / level.expToNext) * 100, 100).toFixed(1);
+        return {
+          ...level,
+          levelName: level.name,
+          currentExp,
+          expPercentage: percentage + '%'
+        };
+      }
+      accumulatedExp += level.expToNext;
+    }
+    const max = LEVEL_SYSTEM[LEVEL_SYSTEM.length - 1];
+    return { ...max, levelName: max.name, expPercentage: '100%' };
+  },
+
+  // --- 【新增】获取最近修炼日志 ---
+  getRecentLogs(limit = 10) {
+    const logs = wx.getStorageSync('practice_logs') || [];
+    return logs.slice(0, limit);
+  },
+
+  // --- 【核心】执行修炼 ---
+  doPractice(gongfaId, category, expGain = null) {
+    const data = this.getCultivationData();
+    const list = data[category];
+    const index = list.findIndex(item => item.id === gongfaId);
+
+    if (index === -1) return { success: false, msg: '功法不存在' };
+
+    const item = list[index];
+    const finalExp = expGain !== null ? expGain : item.exp;
+
+    // 1. 更新数据
+    item.count = (item.count || 0) + 1;
+    item.totalExpEarned = (item.totalExpEarned || 0) + finalExp;
+    data[category][index] = item;
+    Cache.set('userCultivations', data);
+
+    // 2. 【新增】写入详细日志
+    this._addLog(item.name, category, finalExp);
+
+    return {
+      success: true,
+      addedExp: finalExp,
+      gongfaName: item.name,
+      newCount: item.count
+    };
+  },
+
+  /**
+   * 内部方法：添加日志
+   */
+  _addLog(actionName, type, exp) {
+    let logs = wx.getStorageSync('practice_logs') || [];
+    const now = new Date();
+    
+    const newLog = {
+      timestamp: now.getTime(),
+      action: actionName,
+      type: type,
+      exp: exp
+    };
+
+    logs.unshift(newLog);
+    if (logs.length > 50) logs = logs.slice(0, 50); // 只保留最近50条
+    wx.setStorageSync('practice_logs', logs);
+  }
+};
+
+module.exports = CultivationService;
+--- FILE END: D:\daima\xiuxian\services\cultivation.service.js ---
+
+
+--- FILE START: D:\daima\xiuxian\services\gongfa.service.js ---
+// services/gongfa.service.js
+const Cache = require('../utils/cache-manager');
+
+// 辅助：生成UUID (再次复用，后期可以提取到 utils/util.js)
+const uuid = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+    return v.toString(16);
+  });
+};
+
+const GongfaService = {
+  /**
+   * 添加新功法
+   */
+  addGongfa(category, gongfaTemplate) {
+    const data = Cache.get('userCultivations');
+    const list = data[category];
+
+    // 1. 查重逻辑 (包含复活归隐功法)
+    const archivedItem = list.find(item => item.name === gongfaTemplate.name && item.status === 'archived');
+    if (archivedItem) {
+      delete archivedItem.status; // 复活
+      Cache.set('userCultivations', data);
+      return { success: true, msg: '功法已复原', isRestore: true };
+    }
+
+    const activeItem = list.find(item => item.name === gongfaTemplate.name && item.status !== 'archived');
+    if (activeItem) {
+      return { success: false, msg: '此功法已存在' };
+    }
+
+    // 2. 新增逻辑
+    const newGongfa = {
+      id: uuid(),
+      name: gongfaTemplate.name,
+      exp: gongfaTemplate.exp,
+      count: 0,
+      totalExpEarned: 0,
+      ...gongfaTemplate // 合并其他属性
+    };
+
+    list.push(newGongfa);
+    Cache.set('userCultivations', data);
+    return { success: true, msg: '编入成功' };
+  },
+
+  /**
+   * 归隐(删除)功法
+   */
+  archiveGongfa(category, id) {
+    const data = Cache.get('userCultivations');
+    const index = data[category].findIndex(item => item.id === id);
+    
+    if (index > -1) {
+      data[category][index].status = 'archived';
+      Cache.set('userCultivations', data);
+      return true;
+    }
+    return false;
+  }
+};
+
+module.exports = GongfaService;
+--- FILE END: D:\daima\xiuxian\services\gongfa.service.js ---
+
+
+--- FILE START: D:\daima\xiuxian\services\memory.service.js ---
+const CultivationService = require('./cultivation.service');
+const ChatService = require('./chat.service');
+const Cache = require('../utils/cache-manager');
+const UserService = require('./user.service');
+const AIService = require('./ai.service');
+const { SYSTEM_PROMPT, ARCHIVIST_PROMPT } = require('../utils/prompt-template');
+
+// 【生产配置】每累计 10 条有效对话触发一次后台分析
+const CONTEXT_LIMIT = 10; 
+
+const MemoryService = {
+  
+  _getDateLabel(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    if (date.toDateString() === now.toDateString()) return "今日";
+    return `${date.getMonth() + 1}月${date.getDate()}日`;
+  },
+
+  // ==========================================
+  // 1. 组装发送给 Chat 的数据 (读记忆)
+  // ==========================================
+  buildSystemMessage() {
+    // --- A. 获取硬数据 ---
+    const profile = UserService.getUserProfile();
+    const levelInfo = CultivationService.getCurrentLevelInfo();
+    const attrs = CultivationService.calculateAttributes();
+    const logs = CultivationService.getRecentLogs(5); 
+    
+    // --- B. 获取软数据 ---
+    const memory = Cache.get('deepMemory') || { 
+      basic: {}, goals: [], interests: [], difficulties: [], summary: "" 
+    };
+    
+    // 1. 格式化基础信息
+    const name = memory.basic.name || profile.nickName;
+    const gender = memory.basic.gender || "性别未知";
+    const job = memory.basic.job || "职业未知";
+    const age = memory.basic.age || "年龄未知";
+    const joinDays = Math.floor((Date.now() - (profile.joinDate || Date.now())) / (1000 * 60 * 60 * 24)) + 1;
+
+    const hardInfoStr = `
+【道号】：${name}
+【根骨】：性别[${gender}]，年龄[${age}]，职业[${job}]
+【仙途】：入宗 ${joinDays} 天，境界【${levelInfo.levelName}】
+【五维】：寿元${attrs.shouYuan}, 体质${attrs.tiZhi}, 心境${attrs.xinJing}, 智慧${attrs.zhiHui}, 财富${attrs.caiFu}
+`.trim();
+
+    // 2. 格式化近期机缘
+    let recentLogStr = "近期暂无修炼。";
+    if (logs.length > 0) {
+      recentLogStr = logs.map(l => 
+        `[${this._getDateLabel(l.timestamp)}] 习得《${l.action}》 (修为+${l.exp})`
+      ).join('\n');
+    }
+
+    // 3. 格式化本命功法 (Top 20)
+    const cultData = CultivationService.getCultivationData();
+    const allGongfas = [
+      ...cultData.body, ...cultData.mind, ...cultData.skill, ...cultData.wealth
+    ].filter(item => item.count > 0);
+    
+    let gongfaStatsStr = "尚无修炼功法。";
+    if (allGongfas.length > 0) {
+      const topGongfas = allGongfas.sort((a, b) => b.count - a.count).slice(0, 20);
+      gongfaStatsStr = topGongfas.map(g => `- 《${g.name}》：已炼 ${g.count} 次`).join('\n');
+    }
+
+    // 4. 格式化道心画像
+    const softInfoStr = `
+- 目标：${(memory.goals || []).join('、') || '暂无'}
+- 喜好：${(memory.interests || []).join('、') || '暂无'}
+- 当前心魔/困难：${(memory.difficulties || []).join('、') || '暂无'}
+`.trim();
+
+    // --- C. 模板替换 ---
+    let content = SYSTEM_PROMPT
+      .replace('{hard_info_text}', hardInfoStr)
+      .replace('{recent_activity_log}', recentLogStr)
+      .replace('{cultivation_stats}', gongfaStatsStr)
+      .replace('{soft_info_text}', softInfoStr)
+      .replace('{rolling_summary}', memory.summary || "暂无前情");
+
+    return { role: 'system', content: content };
+  },
+
+  buildRequestMessages(newQuery) {
+    const systemMsg = this.buildSystemMessage();
+    let historyObjs = ChatService.getContextForAI(10); // 聊天上下文取最近10条
+    
+    // 去重逻辑
+    if (historyObjs.length > 0) {
+      const lastMsg = historyObjs[historyObjs.length - 1];
+      if (lastMsg.role === 'user' && lastMsg.content === newQuery) {
+        historyObjs.pop(); 
+      }
+    }
+
+    const historyStr = historyObjs.map(msg => {
+       const roleName = msg.role === 'user' ? '主人' : '器灵';
+       return `${roleName}：${msg.content}`;
+    }).join('\n');
+
+    const finalContent = `
+记忆（上下文）：
+${historyStr}
+
+[当前] 主人：${newQuery}
+`;
+    return [ systemMsg, { role: 'user', content: finalContent } ];
+  },
+
+  // ==========================================
+  // 2. 后台分析 (写记忆)
+  // ==========================================
+
+  async checkAndUpdateMemory() {
+    const history = ChatService.getHistory(0);
+    
+    // 过滤系统消息，只计算有效对话条数
+    const chatOnly = history.filter(m => m.role === 'user' || m.role === 'assistant');
+    const chatLen = chatOnly.length;
+
+    // 满足阈值倍数时触发
+    if (chatLen > 0 && chatLen % CONTEXT_LIMIT === 0) {
+      // 取最近的 N 条混合记录（包含系统消息有助于AI理解背景）
+      const recentChat = history.slice(-CONTEXT_LIMIT); 
+      this._runAnalysisTask(recentChat);
+    }
+  },
+
+  async _runAnalysisTask(recentChat) {
+    const currentMemory = Cache.get('deepMemory') || { basic:{}, goals:[] };
+    
+    const chatText = recentChat.map(m => `${m.role}:${m.content}`).join('\n');
+    
+    const promptContent = ARCHIVIST_PROMPT
+      .replace('{current_memory_json}', JSON.stringify(currentMemory))
+      .replace('{recent_history}', chatText);
+
+    let aiResponse = "";
+    
+    // 静默调用 AI
+    AIService.sendMessageStream(
+      [{ role: 'user', content: promptContent }], 
+      (chunk) => { aiResponse += chunk; }, 
+      () => { this._updateLocalMemory(aiResponse); }
+    );
+  },
+
+  _updateLocalMemory(jsonString) {
+    try {
+      // JSON 清洗逻辑
+      let cleanJson = jsonString.replace(/```json/g, '').replace(/```/g, '');
+      const firstBrace = cleanJson.indexOf('{');
+      const lastBrace = cleanJson.lastIndexOf('}');
+      
+      if (firstBrace === -1 || lastBrace === -1) return;
+      
+      cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
+      const newInsights = JSON.parse(cleanJson);
+
+      let memory = Cache.get('deepMemory') || { basic:{}, goals:[], interests:[], difficulties:[], summary:"" };
+
+      // 合并逻辑
+      if (newInsights.basic) memory.basic = { ...memory.basic, ...newInsights.basic };
+      if (newInsights.summary) memory.summary = newInsights.summary;
+      
+      const updateList = (oldList, newList, limit) => {
+        let merged = [...new Set([...(oldList || []), ...(newList || [])])];
+        if (merged.length > limit) merged = merged.slice(-limit);
+        return merged;
+      };
+
+      if (newInsights.goals) memory.goals = updateList(memory.goals, newInsights.goals, 5);
+      if (newInsights.interests) memory.interests = updateList(memory.interests, newInsights.interests, 5);
+      if (newInsights.difficulties) memory.difficulties = updateList(memory.difficulties, newInsights.difficulties, 3);
+
+      Cache.set('deepMemory', memory);
+      console.log('✅ 记忆已静默更新');
+      
+    } catch (e) {
+      // 静默失败，不打扰用户，但在开发版可以保留这个 error 以便排查
+      console.error('记忆解析微小错误(可忽略)', e);
+    }
+  }
+};
+
+module.exports = MemoryService;
+--- FILE END: D:\daima\xiuxian\services\memory.service.js ---
+
+
+--- FILE START: D:\daima\xiuxian\services\user.service.js ---
+// services/user.service.js
+const Cache = require('../utils/cache-manager');
+
+const UserService = {
+  /**
+   * 获取用户基础信息 (如果不存在则初始化)
+   */
+  getUserProfile() {
+    let profile = Cache.get('userProfile');
+    if (!profile) {
+      // 初始化默认用户
+      profile = {
+        nickName: '主人',
+        joinDate: Date.now()
+      };
+      Cache.set('userProfile', profile);
+    }
+    return profile;
+  },
+
+  /**
+   * 更新用户基础信息
+   */
+  updateProfile(data) {
+    const profile = this.getUserProfile();
+    const newProfile = { ...profile, ...data };
+    Cache.set('userProfile', newProfile);
+    return newProfile;
+  }
+};
+
+module.exports = UserService;
+--- FILE END: D:\daima\xiuxian\services\user.service.js ---
+
+
+--- FILE START: D:\daima\xiuxian\components\custom-dialog.js ---
+// components/custom-dialog/custom-dialog.js
+Component({
+  properties: {
+    show: { // 控制弹窗显示/隐藏
+      type: Boolean,
+      value: false
+    },
+    title: { // 弹窗标题
+      type: String,
+      value: '提示'
+    },
+    message: { // 弹窗消息
+      type: String,
+      value: ''
+    },
+    confirmText: { // 确认按钮文字
+      type: String,
+      value: '确认'
+    },
+    cancelText: { // 取消按钮文字
+      type: String,
+      value: '取消'
+    }
+  },
+
+  data: {
+    // 内部数据
+  },
+
+  methods: {
+    // 阻止蒙层滚动穿透
+    preventTouchMove() {
+      // do nothing
+    },
+
+    // 点击取消按钮
+    onCancel() {
+      this.setData({ show: false });
+      // 触发 cancel 事件，通知父页面
+      this.triggerEvent('cancel');
+    },
+
+    // 点击确认按钮
+    onConfirm() {
+      this.setData({ show: false });
+      // 触发 confirm 事件，通知父页面
+      this.triggerEvent('confirm');
+    }
+  }
+})
+--- FILE END: D:\daima\xiuxian\components\custom-dialog.js ---
+
+
+--- FILE START: D:\daima\xiuxian\components\custom-dialog.json ---
+{
+  "component": true,
+  "usingComponents": {}
+}
+--- FILE END: D:\daima\xiuxian\components\custom-dialog.json ---
+
+
+--- FILE START: D:\daima\xiuxian\components\custom-dialog.wxml ---
+<!--components/custom-dialog/custom-dialog.wxml-->
+<view class="dialog-mask" wx:if="{{ show }}" catch:touchmove="preventTouchMove">
+  <view class="dialog-container">
+    <image class="dialog-bg" src="/images/dialog-bg.png" mode="stretchFix" />
+    <view class="dialog-content">
+      <view class="dialog-title">{{ title }}</view>
+      <view class="dialog-message">{{ message }}</view>
+      <view class="dialog-actions">
+        <view class="action-button cancel" bind:tap="onCancel">
+          <image class="button-bg" src="/images/button-bg-cancel.png" />
+          <text class="button-text">{{ cancelText }}</text>
+        </view>
+        <view class="action-button confirm" bind:tap="onConfirm">
+          <image class="button-bg" src="/images/button-bg-confirm.png" />
+          <text class="button-text">{{ confirmText }}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+--- FILE END: D:\daima\xiuxian\components\custom-dialog.wxml ---
+
+
+--- FILE START: D:\daima\xiuxian\components\custom-dialog.wxss ---
+/* components/custom-dialog/custom-dialog.wxss */
+.dialog-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.dialog-container {
+  width: 80%;
+  max-width: 600rpx;
+  position: relative;
+  
+  /* 【核心改造】应用隶书字体 */
+  font-family: 'LishuFont', sans-serif;
+}
+
+.dialog-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.dialog-content {
+  position: relative;
+  z-index: 2;
+  padding: 48rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.dialog-title {
+  font-size: 34rpx;
+  font-weight: 500;
+  color: #3a3a3a;
+  margin-bottom: 24rpx;
+}
+
+.dialog-message {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 48rpx;
+}
+
+.dialog-actions {
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  gap: 32rpx;
+}
+
+.action-button {
+  width: 240rpx;
+  height: 80rpx;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.button-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.button-text {
+  position: relative;
+  z-index: 2;
+  font-size: 28rpx;
+  font-weight: 500;
+  
+  /* 【核心改造】将按钮文字颜色改为白色 */
+  color: #ffffff; 
+}
+--- FILE END: D:\daima\xiuxian\components\custom-dialog.wxss ---
+
+
+--- FILE START: app.js ---
+// app.js (最终完整版)
+const CacheManager = require('./utils/cache-manager');
+const MemoryService = require('./services/memory.service');
+const AIService = require('./services/ai.service');
+
+App({
+  globalData: {
+    fontLoaded: false
+  },
+  
+  onLaunch() {
+    // 1. 【核心新增】初始化内存缓存
+    // 必须在 App 启动最开始调用，确保后续页面能直接从内存读取数据
+    CacheManager.init();
+
+    // 2. 加载自定义字体
+    this.loadCustomFont();
+  },
+  
+
+  loadCustomFont() {
+    const that = this;
+    console.log('【app.js】: 开始从 Base64 数据直接加载字体...');
+    
+    require.async('pkg_assets/font-data.js')
+      .then(module => {
+        const fontBase64 = module.fontBase64;
+
+        // 容错：如果 font-data.js 文件为空，或者内容格式不对，这里会出错
+        if (!fontBase64 || typeof fontBase64 !== 'string') {
+            console.error('【app.js】: fontBase64 数据异常，请检查 pkg_assets/font-data.js 文件内容。');
+            that.globalData.fontLoaded = true; // 标记为已完成，防止 Splash 页卡住
+            if (that.fontReadyCallback) { that.fontReadyCallback(); }
+            return;
+        }
+
+        const fontSrc = `data:font/truetype;base64,${fontBase64}`;
+
+        wx.loadFontFace({
+          family: 'LishuFont',
+          source: `url("${fontSrc}")`,
+          global: true,
+          success: () => {
+            console.log('【app.js】: 字体分包加载成功！');
+            that.globalData.fontLoaded = true;
+            if (that.fontReadyCallback) { that.fontReadyCallback(); }
+          },
+          fail: (err) => {
+            console.error('【app.js】: loadFontFace 失败', err);
+            that.globalData.fontLoaded = true; 
+            if (that.fontReadyCallback) { that.fontReadyCallback(); }
+          }
+        });
+      })
+      .catch(err => {
+        console.error('【app.js】: 异步加载字体分包失败', err);
+        that.globalData.fontLoaded = true; // 标记为已完成，防止 Splash 页卡住
+        if (that.fontReadyCallback) { that.fontReadyCallback(); }
+      });
+  }
+})
+--- FILE END: app.js ---
+
+
+--- FILE START: app.json ---
+{
+  "pages": [
+    "pages/splash/splash",
+    "pages/profile/profile",
+    "pages/practice/practice",
+    "pages/settings/settings",
+    "pages/chat/chat"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#ECE9DD",
+    "navigationBarTitleText": "修仙之路",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "custom": true,
+    "list": [
+      {
+        "pagePath": "pages/profile/profile",
+        "text": "我"
+      },
+      {
+        "pagePath": "pages/practice/practice",
+        "text": "修炼"
+      },
+      {
+        "pagePath": "pages/settings/settings",
+        "text": "功法"
+      }
+    ]
+  },
+  "subpackages": [
+    {
+      "root": "pkg_journal",
+      "pages": [
+        "pages/list/list",
+        "pages/edit/edit"
+      ]
+    },
+    {
+      "root": "pkg_assets",
+      "name": "assets",
+      "pages": []
+    }
+  ],
+  "lazyCodeLoading": "requiredComponents",
+  "usingComponents": {
+    "van-dialog": "@vant/weapp/dialog/index",
+    "van-notify": "@vant/weapp/notify/index",
+    "van-tabs": "@vant/weapp/tabs/index",
+    "van-tab": "@vant/weapp/tab/index",
+    "van-icon": "@vant/weapp/icon/index",
+    "van-popup": "@vant/weapp/popup/index"
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}
+--- FILE END: app.json ---
+
+
+--- FILE START: app.wxss ---
+/* app.wxss */
+
+/* 只保留你原来的 @import 语句 */
+@import "/styles/theme.wxss";
+
+page {
+  font-family: 'LishuFont', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Segoe UI, Arial, Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft Yahei', sans-serif;
+}
+
+/* 2. 为最核心的文本组件 <text> 明确指定字体 */
+/*    这是解决“寿元:”、“修为”等文字的关键 */
+text {
+  font-family: 'LishuFont' !important;
+}
+
+/* 3. 如果你的按钮文字也需要改变，可以加上这一条 */
+/* button {
+  font-family: 'LishuFont' !important;
+} */
+
+/* 4. 保留 .font-lishu 类，作为一个备用的、可以手动施加的样式 */
+/*    虽然现在可能用不上了，但留着无害 */
+.font-lishu {
+  font-family: 'LishuFont' !important;
+}
+--- FILE END: app.wxss ---

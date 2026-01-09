@@ -11,7 +11,6 @@ const UserService = {
       // 初始化默认用户
       profile = {
         nickName: '主人',
-        avatarUrl: '/images/profile-avatar-ink.png', // 默认头像
         joinDate: Date.now()
       };
       Cache.set('userProfile', profile);

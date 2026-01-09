@@ -130,7 +130,7 @@ Page({
     setTimeout(() => {
       this.setData({ isCultivating: false });
       this.processCultivationResult(gongfa, category);
-    }, 2000);
+    }, 1500);
   },
 
   /**
@@ -181,8 +181,8 @@ Page({
       const changes = [];
       
       // 公共公式
-      const attrIncrement = (addedExp / 500).toFixed(2); // 属性增加量
-      const lifeIncrement = (addedExp / 1000).toFixed(3); // 寿元增加量
+      const attrIncrement = parseFloat((addedExp / 500).toFixed(3)); 
+      const lifeIncrement = parseFloat((addedExp / 1000).toFixed(3)); 
   
       if (category === 'body') {
         changes.push({ label: '寿元', val: lifeIncrement });
