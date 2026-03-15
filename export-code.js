@@ -1,3 +1,4 @@
+//AI 专属的项目代码提取器
 const fs = require('fs');
 const path = require('path');
 

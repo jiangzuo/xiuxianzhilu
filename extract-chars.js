@@ -1,4 +1,4 @@
-// extract-chars.js (最终奥义 - font-carrier 核心 & 丹药符咒双修版)
+// extract-chars.js (提取所有文字 - font-carrier )
 const fs = require('fs');
 const path = require('path');
 const fontCarrier = require('font-carrier');

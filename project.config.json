@@ -2,7 +2,48 @@
   "compileType": "miniprogram",
   "libVersion": "3.9.3",
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "folder",
+        "value": ".figma"
+      },
+      {
+        "type": "folder",
+        "value": "fonts"
+      },
+      {
+        "type": "folder",
+        "value": "tests"
+      },
+      {
+        "type": "folder",
+        "value": "docs"
+      },
+      {
+        "type": "file",
+        "value": ".gitignore"
+      },
+      {
+        "type": "file",
+        "value": "package.json"
+      },
+      {
+        "type": "file",
+        "value": "package-lock.json"
+      },
+      {
+        "type": "file",
+        "value": "playwright.config.js"
+      },
+      {
+        "type": "file",
+        "value": "export-code.js"
+      },
+      {
+        "type": "file",
+        "value": "extract-chars.js"
+      }
+    ],
     "include": []
   },
   "setting": {

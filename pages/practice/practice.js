@@ -4,6 +4,7 @@ import Notify from '@vant/weapp/notify/notify';
 const app = getApp();
 // 【引入 Service】
 const CultivationService = require('../../services/cultivation.service');
+const DailyTaskService = require('../../services/daily-task.service');
 
 Page({
   data: {
@@ -40,13 +41,17 @@ Page({
       description: '你的修为有了新的精进，对大道的理解更深了一层。' 
     },
     levelUpAnimation: {},
-     // 【新增】结算弹窗相关数据
-     showSettlement: false, // 控制弹窗显示
-     settlementInfo: {      // 弹窗显示的内容
+     // 结算弹窗相关数据
+     showSettlement: false,
+     settlementInfo: {
        exp: 0,
        categoryName: '',
-       attrChanges: []      // 属性变化列表 [{label: '寿元', val: 0.005}, ...]
+       attrChanges: []
      },
+
+    // 今日宜练相关
+    isDailyTask: false,
+    targetGongfaId: ''
   },
   
 
@@ -55,6 +60,26 @@ Page({
     this.setData({
       statusBarHeight: systemInfo.statusBarHeight
     });
+
+    let targetGongfaId = options.gongfaId;
+    let targetGongfaName = options.gongfaName;
+
+    if (!targetGongfaId && app.globalData.dailyTaskTarget) {
+      targetGongfaId = app.globalData.dailyTaskTarget.gongfaId;
+      targetGongfaName = app.globalData.dailyTaskTarget.gongfaName;
+      app.globalData.dailyTaskTarget = null;
+    }
+
+    if (targetGongfaId) {
+      const category = DailyTaskService.getCategoryByGongfaId(targetGongfaId);
+      if (category) {
+        this.setData({
+          activeTab: category,
+          isDailyTask: true,
+          targetGongfaId: targetGongfaId
+        });
+      }
+    }
 
     const applyFont = () => { this.setData({ pageClass: 'font-lishu' }); };
     if (app.globalData.fontLoaded) { applyFont(); } 
@@ -134,24 +159,37 @@ Page({
   },
 
   /**
-   * 【核心重构】处理修炼结果
+   * 处理修炼结果
    * 调用 Service 执行业务逻辑，页面只负责展示结果
    */
   processCultivationResult(gongfa, category) {
-    // 1. 记录修炼前的等级 (用于判断升级)
     const oldLevelInfo = CultivationService.getCurrentLevelInfo();
 
-    // 2. 调用 Service 执行修炼 (核心写操作)
-    const result = CultivationService.doPractice(gongfa.id, category);
+    const isDailyTask = this.data.isDailyTask && this.data.targetGongfaId === gongfa.id;
+    const baseExp = gongfa.exp || 10;
+    const finalExp = isDailyTask ? baseExp * 2 : baseExp;
 
-    if (result.success) { 
-      // 3. 刷新界面数据
+    let result = CultivationService.doPractice(gongfa.id, category, finalExp);
+
+    if (result.success) {
+      if (isDailyTask) {
+        DailyTaskService.triggerPracticeReaction(
+          gongfa.id,
+          gongfa.name,
+          finalExp,
+          category
+        );
+
+        this.setData({
+          isDailyTask: false,
+          targetGongfaId: ''
+        });
+      }
+
       this.refreshData();
 
-      // 4. 判断升级
       const newLevelInfo = CultivationService.getCurrentLevelInfo();
       if (newLevelInfo.level > oldLevelInfo.level) {
-        // --- 触发升级弹窗 ---
         const breakthroughDesc = newLevelInfo.breakthroughDesc || this.data.levelUpInfo.description;
         this.setData({
           'levelUpInfo.levelName': newLevelInfo.name,
@@ -159,15 +197,13 @@ Page({
           showLevelUp: true
         });
         
-        // 播放升级动画
         const animation = wx.createAnimation({ duration: 400, timingFunction: 'ease' });
         wx.nextTick(() => {
           animation.scale(1).opacity(1).step();
           this.setData({ levelUpAnimation: animation.export() });
         });
       } else {
-         // 【修改】不再调用 Notify，而是显示结算弹窗
-         this.showSettlementModal(result.addedExp, category);
+         this.showSettlementModal(finalExp, category, finalExp);
         }
       } else {
         wx.showToast({ title: '修炼数据异常', icon: 'none' });
@@ -175,12 +211,10 @@ Page({
     },
   
     // 【新增】显示结算弹窗
-    showSettlementModal(addedExp, category) {
-      // 1. 计算属性增量 (根据 Service 里的公式反推)
-      // 公式参考：寿元=Exp/1000, 其他五维=Exp/500
+    showSettlementModal(baseExp, category, finalExp) {
       const changes = [];
       
-      // 公共公式
+      const addedExp = finalExp !== undefined ? finalExp : baseExp;
       const attrIncrement = parseFloat((addedExp / 500).toFixed(3)); 
       const lifeIncrement = parseFloat((addedExp / 1000).toFixed(3)); 
   

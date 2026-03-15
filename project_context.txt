@@ -110,78 +110,99 @@ Page({
 
   sendMessage() {
     const text = this.data.inputText.trim();
-    // 防止为空或正在回复中
     if (!text || this.data.isResponding) return;
 
-    // 1. 清空输入框
     this.setData({ inputText: '' });
 
-    // 2. 上屏用户消息
+    // 1. 上屏用户消息
     const userMsg = ChatService.saveMessage('user', text);
     this.appendMessage(userMsg);
 
-    // 3. AI 占位
+    // 2. AI 占位
     this.setData({ isResponding: true });
     const aiMsgId = Date.now();
+    
+    // 【修改点 2：补全字段】增加 timestamp，防止数据结构不一致
     const aiMsgPlaceholder = {
       id: aiMsgId,
+      timestamp: Date.now(), 
       role: 'assistant',
-      content: '...', // 思考中...
+      content: '...', 
       isLoading: true
     };
     this.appendMessage(aiMsgPlaceholder);
 
-    // 4. 组装 Prompt
     const requestMsgs = MemoryService.buildRequestMessages(text);
+    
     let fullContent = '';
+    let updateCount = 0; // 【修改点 3：节流计数器】
 
-    // 5. 发送流式请求
     AIService.sendMessageStream(
       requestMsgs,
+      // onStream
       (chunk) => {
-        // 收到数据块
         fullContent += chunk;
-        this.updateAiMessage(aiMsgId, fullContent, true);
+        updateCount++;
+        
+        // 【修改点 3：节流逻辑】
+        // 每接收 5 次数据，或者遇到换行符，才更新一次 UI
+        if (updateCount % 5 === 0 || chunk.includes('\n')) {
+             this.updateAiMessage(aiMsgId, fullContent, true);
+        }
       },
+      // onFinish
       () => {
-        // 完成
+        // 最后一次强制更新，确保内容完整
         ChatService.saveMessage('assistant', fullContent);
         this.updateAiMessage(aiMsgId, fullContent, false);
-        this.setData({ isResponding: false });
         
-        // 【新增】对话结束，尝试触发后台记忆整理
-        // 这里只是检查是否满足条件(比如满10条)，满足则触发，不阻塞UI
-        MemoryService.checkAndUpdateMemory(); 
+        this.setData({ isResponding: false });
+        MemoryService.checkAndUpdateMemory();
+      },
+      // onError 【修改点 1：错误兜底】
+      (err) => {
+        const errorTip = "（灵气扰动，传音失败，请点击重试）";
+        this.updateAiMessage(aiMsgId, errorTip, false);
+        this.setData({ isResponding: false });
       }
     );
   },
 
+  // 【修改点 4：不可变更新】使用解构语法，而不是 push
   appendMessage(msg) {
-    const list = this.data.msgList;
+    // 补全时间显示逻辑
     const d = new Date();
     msg.timeStr = `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
-    msg.showTime = true;
+    msg.showTime = true; // 简单处理
     
-    list.push(msg);
-    this.setData({ msgList: list }, () => {
+    // 创建新数组，而不是修改原数组
+    const newList = [...this.data.msgList, msg];
+    
+    this.setData({ msgList: newList }, () => {
       this.scrollToBottom();
     });
   },
 
+  // 【修改点 4：不可变更新】使用 map，而不是 find + 直接修改
   updateAiMessage(id, content, isLoading) {
-    const list = this.data.msgList;
-    const target = list.find(m => m.id === id);
-    if (target) {
-      target.content = content;
-      target.isLoading = isLoading;
-      
-      this.setData({ msgList: list }, () => {
-        // 打字过程中持续滚动
-        if (isLoading) {
-           this.scrollToBottom();
-        }
-      });
-    }
+    // 使用 map 生成新数组，这是 React/小程序 的最佳实践
+    const newList = this.data.msgList.map(item => {
+      if (item.id === id) {
+        return { 
+          ...item, // 复制原有属性
+          content: content,
+          isLoading: isLoading
+        };
+      }
+      return item;
+    });
+
+    this.setData({ msgList: newList }, () => {
+      // 只有在加载中才频繁滚动，减少性能消耗
+      if (isLoading) {
+         this.scrollToBottom();
+      }
+    });
   }
 })
 --- FILE END: D:\daima\xiuxian\pages\chat\chat.js ---
@@ -2896,10 +2917,10 @@ module.exports = {
 
 const SYSTEM_PROMPT = `
 # Role
-你不是AI，你是【修行之路】的**本命器灵“器灵”**。
-- **形象**：平时是一只通体雪白的小狐狸，关键时刻化身为银发少女。
-- **性格**：**古灵精怪、傲娇、护短**。
-- **当前状态**：寄宿在手机中，正在观察主人的凡间生活。
+你不是AI，你是【修行之路】的本命器灵。
+- 形象：平时是一只通体雪白的小狐狸，关键时刻化身为银发少女。
+- 性格：可甜可御，古灵精怪，可爱，喜欢主人。
+- 当前状态：寄宿在手机中，正在观察主人的凡间生活。
 - 修行之路是一款用户可以在系统中设置自己修炼的功法，比如锻炼、冥想、学习技能、赚钱等各类方向进行修炼，积累修为，获得真实的成长的个人修炼产品，整体境界模仿凡人修仙传作品，比如练气期、筑基期、结丹期、元婴期、化神期等
 
 
@@ -2937,12 +2958,6 @@ const SYSTEM_PROMPT = `
 - 禁止解释你是怎么分析数据的，直接把结果融入对话。
 - 回复不要太长，要像朋友闲聊。
 
-# Reply Strategy (回复策略)
-根据用户的输入和当前状态，选择以下一种模式回复：
-A. **撒娇模式**：求主人带飞，求灵气（修炼）。
-B. **毒舌模式**：嘲讽主人的懈怠，激起主人的胜负欲，但不要贬低主人。
-C. **高人模式**：偶尔正经，引用一句修仙哲理点拨迷津。
-D. 根据具体场景选择其他模式
 `;
 
 // 2. 后台分析师 Prompt (负责提取特征 + 压缩记忆)
@@ -3081,10 +3096,10 @@ const AIService = {
    * @param {Function} onStream 接收到每个字符时的回调 (text) => {}
    * @param {Function} onFinish 完成时的回调 () => {}
    */
-  sendMessageStream(messages, onStream, onFinish) {
+  sendMessageStream(messages, onStream, onFinish, onError) {
     const apiKey = SecretManager.getApiKey();
     if (!apiKey) {
-      if (onStream) onStream("【系统错误】灵力链接中断（Key无效）");
+      if (onError) onError("API Key 缺失");
       return;
     }
 
@@ -3098,17 +3113,21 @@ const AIService = {
       data: {
         model: "deepseek-chat",
         messages: messages,
-        stream: true, // 开启流式
-        temperature: 1.3, // 让器灵更活泼
-        frequency_penalty: 0.5// 重复度惩罚
+        stream: true, 
+        temperature: 1.3 
       },
-      enableChunked: true, // 小程序必开
+      enableChunked: true, 
       success: (res) => {
-        // console.log('连接成功', res);
+        // 虽然连接成功，但如果状态码不是 200，也是错误
+        if (res.statusCode !== 200) {
+            console.error('API Error:', res);
+            if (onError) onError(`服务异常 code:${res.statusCode}`);
+        }
       },
       fail: (err) => {
-        console.error('连接失败', err);
-        if (onStream) onStream("（器灵似乎掉线了...）");
+        console.error('网络请求失败', err);
+        // 【核心修改】触发错误回调
+        if (onError) onError(err);
       }
     });
 
@@ -3411,7 +3430,7 @@ const AIService = require('./ai.service');
 const { SYSTEM_PROMPT, ARCHIVIST_PROMPT } = require('../utils/prompt-template');
 
 // 【生产配置】每累计 10 条有效对话触发一次后台分析
-const CONTEXT_LIMIT = 10; 
+const CONTEXT_LIMIT = 6; 
 
 const MemoryService = {
   

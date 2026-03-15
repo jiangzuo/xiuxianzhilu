@@ -35,6 +35,9 @@
         <view class="bubble font-system">
           <text user-select>{{item.content}}</text>
           <view wx:if="{{item.isLoading}}" class="loading-dots">...</view>
+          <view class="daily-task-buttons" wx:if="{{item.showDailyTaskButtons && !item.isLoading}}">
+            <view class="task-btn primary" bindtap="onGoPractice" data-gongfaid="{{item.gongfaId}}" data-gongfaname="{{item.gongfaName}}">去修炼</view>
+          </view>
         </view>
       </view>
     </block>
@@ -42,13 +45,16 @@
     <!-- 底部锚点 -->
     <view id="bottom-anchor" style="height: 20rpx;"></view>
   </scroll-view>
+  
+  <!-- 今日宜练按钮 (固定在聊天区域左下角) -->
+  <view class="daily-task-fixed">
+    <view class="daily-task-btn" bindtap="onDailyTaskTap">今日宜练</view>
+  </view>
 </view>
 
-<!-- 3. 底部输入区 (Flex 底部固定项) -->
-<!-- 通过 padding-bottom 适配键盘高度 -->
-<view class="footer-input" style="padding-bottom: {{keyboardHeight > 0 ? keyboardHeight : (isIphoneX ? 34 : 20)}}px;">
-  <view class="input-box">
-    <!-- 输入框强制系统字体 -->
+<!-- 3. 底部输入区 -->
+<view class="footer-wrapper" style="padding-bottom: {{keyboardHeight > 0 ? keyboardHeight : (isIphoneX ? 34 : 20)}}px;">
+  <view class="footer-input-box">
     <input 
       class="input-field font-system"
       value="{{inputText}}" 

@@ -9,10 +9,10 @@ const AIService = {
    * @param {Function} onStream 接收到每个字符时的回调 (text) => {}
    * @param {Function} onFinish 完成时的回调 () => {}
    */
-  sendMessageStream(messages, onStream, onFinish) {
+  sendMessageStream(messages, onStream, onFinish, onError) {
     const apiKey = SecretManager.getApiKey();
     if (!apiKey) {
-      if (onStream) onStream("【系统错误】灵力链接中断（Key无效）");
+      if (onError) onError("API Key 缺失");
       return;
     }
 
@@ -26,17 +26,21 @@ const AIService = {
       data: {
         model: "deepseek-chat",
         messages: messages,
-        stream: true, // 开启流式
-        temperature: 1.3, // 让器灵更活泼
-        frequency_penalty: 0.5// 重复度惩罚
+        stream: true, 
+        temperature: 1.3 
       },
-      enableChunked: true, // 小程序必开
+      enableChunked: true, 
       success: (res) => {
-        // console.log('连接成功', res);
+        // 虽然连接成功，但如果状态码不是 200，也是错误
+        if (res.statusCode !== 200) {
+            console.error('API Error:', res);
+            if (onError) onError(`服务异常 code:${res.statusCode}`);
+        }
       },
       fail: (err) => {
-        console.error('连接失败', err);
-        if (onStream) onStream("（器灵似乎掉线了...）");
+        console.error('网络请求失败', err);
+        // 【核心修改】触发错误回调
+        if (onError) onError(err);
       }
     });
 

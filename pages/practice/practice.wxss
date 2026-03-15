@@ -88,13 +88,12 @@ page {
   gap: 36rpx; 
 }
 .gongfa-item {
-  
+  position: relative;
   background-color: #DEDEDE; 
   
-  /* 3. 添加阴影 */
   box-shadow: 0 8rpx 12rpx rgba(0, 0, 0, 0.08); 
   
-  border-radius: 24rpx; /* 增加圆角，配合阴影更好看 */
+  border-radius: 24rpx;
   padding: 32rpx;
   box-sizing: border-box;
   display: flex;
@@ -116,6 +115,17 @@ page {
   font-size: 24rpx;
   color: #999;
   margin-top: 12rpx;
+}
+
+.daily-task-tag {
+  position: absolute;
+  top: 16rpx;
+  right: 16rpx;
+  background-color: #ff8d28;
+  color: #fff;
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 16rpx;
 }
 
 /* 空状态 (保持不变) */

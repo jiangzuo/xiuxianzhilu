@@ -42,6 +42,7 @@
                   <image class="gongfa-book-icon" src="/images/{{ categoryIconMap[key] }}" mode="aspectFit" />
                   <view class="gongfa-item-name">{{ item.name }}</view>
                   <view class="gongfa-item-count">已修炼 {{ item.count }} 次</view>
+                  <view class="daily-task-tag" wx:if="{{ isDailyTask && targetGongfaId === item.id }}">今日宜练</view>
                 </view>
               </block>
             </block>

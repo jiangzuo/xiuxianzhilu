@@ -10,7 +10,7 @@ page {
 }
 
 /* --- 2. 页面总容器 --- */
-.page-container {
+.page-wrapper {
   height: 100%;
   display: flex;
   flex-direction: column;
@@ -18,18 +18,37 @@ page {
   padding-bottom: calc(50px + env(safe-area-inset-bottom));
 }
 
-/* --- 3. 顶部固定区 --- */
-.top-section {
+/* --- 3. 头部容器 --- */
+.header-container {
   flex-shrink: 0;
-  /* 这里的 padding 决定了图标距离屏幕边缘的距离 */
-  padding: 0 32rpx; 
-  z-index: 10;
   background-color: #ECE9DD;
+  z-index: 10;
+  padding-bottom: 20rpx;
+}
+
+/* --- 4. 滚动容器 --- */
+.scroll-container {
+  flex-shrink: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 32rpx;
+}
+
+.container {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* 导入导出图标样式 */
+.import-export-icon {
+  width: 40rpx;
+  height: 40rpx;
+  vertical-align: middle;
 }
 
 /* 【核心修复】自定义导航栏布局 */
 .custom-nav {
-  height: 44px;
+  height: 36px;
   width: 100%;
   position: relative; /* 作为坐标系基准 */
   display: flex;
@@ -37,17 +56,32 @@ page {
   /* 移除 justify-content，改用绝对定位 */
 }
 
-/* 1. 左侧图标：强制绝对定位在最左侧 */
-.nav-left {
+/* 左侧按钮容器 */
+.nav-left-container {
   position: absolute;
   left: 16rpx;  /* 紧贴父容器左侧 */
   top: 0;
   height: 100%;
-  width: 80rpx; /* 增大点击热区 */
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  z-index: 20; /* 确保层级高，可点击 */
+}
+
+/* 左侧图标：强制绝对定位在最左侧 */
+.nav-left {
+  height: 100%;
+  width: auto;
   display: flex;
   align-items: center;
   justify-content: flex-start; /* 图标靠左对齐 */
-  z-index: 20; /* 确保层级高，可点击 */
+  padding: 0 10rpx;
+}
+
+.nav-left-text {
+  font-size: 24rpx;
+  color: #3a3a3a;
+  font-weight: 500;
 }
 
 /* 2. 中间标题：强制绝对定位在正中心 */
@@ -60,6 +94,8 @@ page {
   color: #3a3a3a;
   z-index: 10;
   white-space: nowrap; /* 防止标题换行 */
+  top: 50%;
+  transform: translate(-50%, -50%); /* 垂直居中 */
 }
 
 /* 右侧占位可以删掉或者留着，因为用了绝对定位，它已经不影响布局了 */
@@ -71,7 +107,7 @@ page {
 /* --- 面板通用样式 --- */
 .panel {
   box-sizing: border-box;
-  margin-bottom: 36rpx;
+  margin-bottom: 24rpx;
   position: relative; /* 【关键】为内部绝对定位的背景图提供容器 */
   overflow: hidden; /* 防止背景图溢出 */
 }
@@ -97,7 +133,7 @@ page {
 
 /* --- 境界与修为面板 --- */
 .realm-panel {
-  margin-top: 24rpx;
+  margin-top: 12rpx;
   height: 140rpx;
 }
 .realm-panel .panel-content {
@@ -228,17 +264,18 @@ page {
 
 /* --- 4. 中间滚动区 --- */
 .middle-section {
-  flex: 1;
+  flex-shrink: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20rpx 0;
 }
 .avatar-image {
   width: 700rpx;
-  height: 700rpx;
+  height: 500rpx;
+  display: block;
 }
 
 /* --- 5. 底部固定区 --- */
@@ -246,7 +283,7 @@ page {
   flex-shrink: 0;
   display: flex;
   justify-content: space-around;
-  padding: 24rpx 48rpx;
+  padding: 8rpx 48rpx;
   z-index: 10;
   background: linear-gradient(to top, #ECE9DD, rgba(236, 233, 221, 0));
 }
@@ -391,3 +428,171 @@ page {
   50% { transform: translateY(-10px); } /* 上浮 10px */
   100% { transform: translateY(0px); }
 }
+
+/* === 导入导出样式 === */
+/* ===================== */
+
+/* 导入导出选择弹窗 */
+.import-export-container {
+  width: 500rpx;
+  background-color: #ECE9DD;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.15);
+}
+
+.import-export-header {
+  text-align: center;
+  margin-bottom: 32rpx;
+}
+
+.import-export-title {
+  font-size: 36rpx;
+  font-weight: 500;
+  color: #3a3a3a;
+}
+
+.import-export-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.import-export-button {
+  height: 96rpx;
+  background-color: #f5f5f5;
+  border-radius: 16rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.import-export-button:active {
+  background-color: #e0e0e0;
+  transform: scale(0.98);
+}
+
+.import-export-button-text {
+  font-size: 32rpx;
+  color: #3a3a3a;
+}
+
+/* 导入数据弹窗 */
+.import-container {
+  width: 600rpx;
+  background-color: #ECE9DD;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.15);
+}
+
+.import-header {
+  text-align: center;
+  margin-bottom: 24rpx;
+}
+
+.import-title {
+  font-size: 36rpx;
+  font-weight: 500;
+  color: #3a3a3a;
+}
+
+.import-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.import-desc {
+  font-size: 24rpx;
+  color: #666;
+  line-height: 1.5;
+}
+
+.import-textarea {
+  width: 100%;
+  max-height: 500rpx;
+  background-color: #f5f5f5;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+  box-sizing: border-box;
+  resize: none;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.import-actions {
+  display: flex;
+  justify-content: space-around;
+  gap: 32rpx;
+  margin-top: 16rpx;
+}
+
+.import-action-button {
+  width: 240rpx;
+  height: 80rpx;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.import-action-button .button-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.import-action-button .button-text {
+  position: relative;
+  z-index: 2;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+/* === 器灵话语样式 === */
+.spirit-message {
+  position: fixed;
+  right: 180rpx;
+  bottom: 520rpx;
+  max-width: 360rpx;
+  padding: 16rpx 24rpx;
+  background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.15);
+  z-index: 99;
+  opacity: 0;
+  transform: translateX(20rpx);
+  transition: all 0.3s ease;
+}
+
+.spirit-message.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.spirit-message::after {
+  content: '';
+  position: absolute;
+  right: -16rpx;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 8rpx solid transparent;
+  border-left-color: #e8e8e8;
+}
+
+.spirit-message-text {
+  font-size: 26rpx;
+  color: #3a3a3a;
+  line-height: 1.5;
+  word-break: break-all;
+}
+
