@@ -46,6 +46,7 @@ const GONGFA_LIBRARY = {
     { key: 'skate', name: '滑冰', options: DURATION_EXP_TEMPLATE },
     { key: 'ski', name: '滑雪', options: DURATION_EXP_TEMPLATE },
     { key: 'dive', name: '潜水', options: DURATION_EXP_TEMPLATE },
+    { key: 'body_housework', name: '做家务', options: DURATION_EXP_TEMPLATE},
     { key: 'other_sport', name: '其他', options: DURATION_EXP_TEMPLATE },
   ],
 
@@ -59,21 +60,47 @@ const GONGFA_LIBRARY = {
     { key: 'summary', name: '记录总结', unit: '1次', exp: 5 },
     { key: 'discussion', name: '和人论道', unit: '1次', exp: 5 },
     { key: 'awareness', name: '自我觉察', unit: '1次', exp: 5 },
+    { key: 'mind_early_sleep', name: '早睡', unit: '1次', exp: 5 },
+    { key: 'mind_early_rise', name: '早起', unit: '1次', exp: 5 },
+    { key: 'mind_abstinence', name: '戒色', unit: '1次', exp: 5 },
     { key: 'calligraphy_mind', name: '练字（心）', unit: '1次', exp: 5 },
   ],
 
-  // === 术修 (Skill) ===
-  // 严格对应需求列表，使用 DURATION_EXP_TEMPLATE
-  skill: [
-    { key: 'study_skill_theory', name: '学习术修知识', options: DURATION_EXP_TEMPLATE },
-    { key: 'language', name: '学习语言', options: DURATION_EXP_TEMPLATE },
-    { key: 'music', name: '音乐', options: DURATION_EXP_TEMPLATE },
-    { key: 'writing', name: '写作', options: DURATION_EXP_TEMPLATE },
-    { key: 'calligraphy_skill', name: '练字（术）', options: DURATION_EXP_TEMPLATE },
-    { key: 'ai_learning', name: '学习AI', options: DURATION_EXP_TEMPLATE },
-    { key: 'life_skill', name: '生活技能', options: DURATION_EXP_TEMPLATE },
-    { key: 'work_skill', name: '工作技能', options: DURATION_EXP_TEMPLATE },
-  ],
+// === 术修 (Skill) ===
+skill: [
+  // --- 1. 通用基础类 ---
+  { key: 'study_skill_theory', name: '学习术修知识', options: DURATION_EXP_TEMPLATE },
+  { key: 'knowledge_mapping', name: '知识整理', options: DURATION_EXP_TEMPLATE }, // 知识图谱
+  // --- 2. 脑力与逻辑类 (神识推演) ---
+  { key: 'reading_pro', name: '专业性学习', options: DURATION_EXP_TEMPLATE }, // 考证/学科
+  { key: 'logic_math', name: '逻辑思维训练', options: DURATION_EXP_TEMPLATE }, // 算力
+  // --- 3. 技术与职场类 (炼器/傀儡术) ---
+  { key: 'ai_learning', name: '学习AI', options: DURATION_EXP_TEMPLATE }, // 前沿知识
+  { key: 'programming', name: '编程开发', options: DURATION_EXP_TEMPLATE }, // 核心技术
+  { key: 'video_editing', name: '视频剪辑', options: DURATION_EXP_TEMPLATE }, // 媒体技术
+  { key: 'design', name: '设计', options: DURATION_EXP_TEMPLATE }, // 视觉技术
+  { key: 'project_management', name: '领导管理', options: DURATION_EXP_TEMPLATE }, // 统筹
+  { key: 'presentation', name: '沟通表达', options: DURATION_EXP_TEMPLATE }, // 纵横
+
+  // --- 4. 艺术与人文类 (符箓/音律) ---
+  { key: 'language', name: '学习语言', options: DURATION_EXP_TEMPLATE },
+  { key: 'writing', name: '写作', options: DURATION_EXP_TEMPLATE },
+  { key: 'calligraphy_skill', name: '练字（术）', options: DURATION_EXP_TEMPLATE },
+  { key: 'drawing', name: '绘画', options: DURATION_EXP_TEMPLATE },
+  { key: 'photography', name: '摄影', options: DURATION_EXP_TEMPLATE },
+  { key: 'music', name: '音乐', options: DURATION_EXP_TEMPLATE },
+  { key: 'chess', name: '棋艺', options: DURATION_EXP_TEMPLATE }, // 策略推演
+
+  // --- 5. 生活与实操类 (御器/杂学) ---
+  { key: 'driving', name: '驾驶', options: DURATION_EXP_TEMPLATE }, // 御器
+  { key: 'cooking_advanced', name: '烹饪', options: DURATION_EXP_TEMPLATE }, // 炼食
+  { key: 'home_repair', name: '家居维修', options: DURATION_EXP_TEMPLATE }, // 修缮
+  { key: 'organizing', name: '整理收纳', options: DURATION_EXP_TEMPLATE }, // 空间
+  { key: 'crafting', name: '手工制作', options: DURATION_EXP_TEMPLATE }, // 制器
+  { key: 'makeup', name: '化妆/造型', options: DURATION_EXP_TEMPLATE }, // 易容
+  { key: 'work_skill', name: '工作技能', options: DURATION_EXP_TEMPLATE }, // 通用工作
+  { key: 'life_skill', name: '生活技能', options: DURATION_EXP_TEMPLATE }, // 通用生活
+],
 
   // === 财修 (Wealth) ===
   // 学习用时间，赚钱/节流用程度

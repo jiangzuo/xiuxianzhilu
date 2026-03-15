@@ -1,83 +1,96 @@
-<!-- pages/profile/profile.wxml -->
-<view class="page-container {{ pageClass }}">
-
-<!-- 1. 顶部固定区 -->
-<view class="top-section" style="padding-top: {{ statusBarHeight }}px;">
-  <view class="custom-nav">
-    <!-- 玩法说明入口 -->
-    <view class="nav-left" bind:tap="onShowHelp">
-      <van-icon name="info-o" size="20px" color="#3a3a3a" />
+0<!-- pages/profile/profile.wxml -->
+<view class="page-wrapper {{ pageClass }}">
+  <!-- 1. “大头部”容器 -->
+  <view class="header-container">
+    <view class="custom-nav" style="padding-top: {{ statusBarHeight }}px;">
+      <!-- 左侧按钮区域 -->
+      <view class="nav-left-container">
+        <!-- 玩法说明入口 -->
+        <view class="nav-left" bind:tap="onShowHelp">
+          <van-icon name="info-o" size="40rpx" color="#3a3a3a" />
+        </view>
+        <!-- 导入导出入口 -->
+        <view class="nav-left" bind:tap="showImportExportPopup">
+          <image src="/images/icon-import-export.png" class="import-export-icon" />
+        </view>
+      </view>
+      <view class="nav-title">我的洞府</view>
     </view>
-    <view class="nav-title">我的洞府</view>
-    <view class="nav-right-placeholder"></view>
   </view>
-  
-  <!-- 面板区域 -->
-  <view class="panel realm-panel">
-    <image class="panel-bg-img" src="/images/panel-bg-realm.png" mode="scaleToFill" />
-    <view class="panel-content">
-      <view class="realm-name">{{ userInfo.levelName }}</view>
-      <view class="exp-bar-wrapper">
-        <text class="exp-label">修为</text>
-        <view class="progress-bar-container">
-          <image class="panel-bg-img" src="/images/progress-bar-bg.png" mode="scaleToFill" />
-          <view class="progress-bar-portion" style="width: {{ userInfo.expPercentage }};"></view>
-          <text class="exp-value-inside">{{ userInfo.currentExp }}/{{ userInfo.expToNext }}</text>
+
+  <!-- 2. “滚动区”容器 -->
+  <view class="scroll-container">
+    <view class="container">
+      <!-- 面板区域 -->
+      <view class="panel realm-panel">
+        <image class="panel-bg-img" src="/images/panel-bg-realm.png" mode="scaleToFill" />
+        <view class="panel-content">
+          <view class="realm-name">{{ userInfo.levelName }}</view>
+          <view class="exp-bar-wrapper">
+            <text class="exp-label">修为</text>
+            <view class="progress-bar-container">
+              <image class="panel-bg-img" src="/images/progress-bar-bg.png" mode="scaleToFill" />
+              <view class="progress-bar-portion" style="width: {{ userInfo.expPercentage }};"></view>
+              <text class="exp-value-inside">{{ userInfo.currentExp }}/{{ userInfo.expToNext }}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="panel attributes-panel">
+        <image class="panel-bg-img" src="/images/panel-bg-attributes.png" mode="scaleToFill" />
+        <view class="panel-content">
+          <view class="attr-row">
+            <view class="attr-item"><text class="attr-label">寿元:</text><text class="attr-value">{{ userAttributes.shouYuan }}</text></view>
+            <view class="attr-item"><text class="attr-label">体质:</text><text class="attr-value">{{ userAttributes.tiZhi }}</text></view>
+            <view class="attr-item"><text class="attr-label">心境:</text><text class="attr-value">{{ userAttributes.xinJing }}</text></view>
+          </view>
+          <view class="attr-row">
+            <view class="attr-item"><text class="attr-label">智慧:</text><text class="attr-value">{{ userAttributes.zhiHui }}</text></view>
+            <view class="attr-item"><text class="attr-label">财富:</text><text class="attr-value">{{ userAttributes.caiFu }}</text></view>
+          </view>
+        </view>
+      </view>
+
+      <view class="panel quote-panel">
+        <image class="quote-panel-bg" src="/images/panel-bg-quote-stretchable.png" mode="scaleToFill" />
+        <view class="quote-content-wrapper">
+          <image class="quote-icon" src="/images/icon-yinyang.png" />
+          <text class="quote-text">{{ dailyQuote }}</text>
         </view>
       </view>
     </view>
   </view>
 
-  <view class="panel attributes-panel">
-    <image class="panel-bg-img" src="/images/panel-bg-attributes.png" mode="scaleToFill" />
-    <view class="panel-content">
-      <view class="attr-row">
-        <view class="attr-item"><text class="attr-label">寿元:</text><text class="attr-value">{{ userAttributes.shouYuan }}</text></view>
-        <view class="attr-item"><text class="attr-label">体质:</text><text class="attr-value">{{ userAttributes.tiZhi }}</text></view>
-        <view class="attr-item"><text class="attr-label">心境:</text><text class="attr-value">{{ userAttributes.xinJing }}</text></view>
-      </view>
-      <view class="attr-row">
-        <view class="attr-item"><text class="attr-label">智慧:</text><text class="attr-value">{{ userAttributes.zhiHui }}</text></view>
-        <view class="attr-item"><text class="attr-label">财富:</text><text class="attr-value">{{ userAttributes.caiFu }}</text></view>
-      </view>
+  <!-- 中间滚动区 -->
+  <view class="middle-section">
+    <view class="avatar-wrapper">
+      <image class="avatar-image" src="/images/profile-avatar-ink.png" mode="aspectFit" />
     </view>
   </view>
 
-  <view class="panel quote-panel">
-    <image class="quote-panel-bg" src="/images/panel-bg-quote-stretchable.png" mode="scaleToFill" />
-    <view class="quote-content-wrapper">
-      <image class="quote-icon" src="/images/icon-yinyang.png" />
-      <text class="quote-text">{{ dailyQuote }}</text>
+  <!-- 底部固定区 -->
+  <view class="bottom-section">
+    <view class="action-button journal-btn" bind:tap="navigateToJournal">
+      <image class="panel-bg-img" src="/images/btn-bg-ink.png" mode="scaleToFill" />
+      <text class="btn-text">感悟日记</text>
+    </view>
+    <view class="action-button review-btn" bind:tap="navigateToReview">
+      <image class="panel-bg-img" src="/images/btn-bg-ink.png" mode="scaleToFill" />
+      <text class="btn-text">修炼回顾</text>
     </view>
   </view>
-</view>
 
-<!-- 2. 中间滚动区 -->
-<view class="middle-section">
-  <view class="avatar-wrapper">
-    <image class="avatar-image" src="/images/profile-avatar-ink.png" mode="aspectFit" />
+  <!-- 器灵话语气泡 -->
+  <view class="spirit-message {{ showSpiritMessage ? 'show' : '' }}" wx:if="{{ spiritMessage }}">
+    <text class="spirit-message-text">{{ spiritMessage }}</text>
   </view>
-</view>
 
-<!-- 3. 底部固定区 -->
-<view class="bottom-section">
-  <view class="action-button journal-btn" bind:tap="navigateToJournal">
-    <image class="panel-bg-img" src="/images/btn-bg-ink.png" mode="scaleToFill" />
-    <text class="btn-text">感悟日记</text>
-  </view>
-  <view class="action-button review-btn" bind:tap="navigateToReview">
-    <image class="panel-bg-img" src="/images/btn-bg-ink.png" mode="scaleToFill" />
-    <text class="btn-text">修炼回顾</text>
-  </view>
-</view>
-
- <!-- 【新增】器灵悬浮入口 -->
- <view class="spirit-float-btn" bind:tap="navigateToChat">
-    
+  <!-- 【新增】器灵悬浮入口 -->
+  <view class="spirit-float-btn" bind:tap="navigateToChat">
     <!-- 器灵图标 -->
     <image class="spirit-img" src="/images/spirit-icon.png" mode="aspectFit" />
   </view>
-
 </view>
 
 <!-- 【玩法说明弹窗】 -->
@@ -135,5 +148,91 @@
       </view>
     </view>
 
+  </view>
+</van-popup>
+
+<!-- 【导入导出选择弹窗】 -->
+<van-popup 
+  show="{{ showImportExportPopup }}" 
+  bind:close="closeImportExportPopup"
+  custom-style="background: transparent;" 
+  z-index="1000"
+>
+  <view class="import-export-container">
+    <view class="import-export-header">
+      <text class="import-export-title">导入导出</text>
+    </view>
+    <view class="import-export-content">
+      <view class="import-export-button" bind:tap="onExportData">
+        <text class="import-export-button-text">导出修为</text>
+      </view>
+      <view class="import-export-button" bind:tap="showImportPopup">
+        <text class="import-export-button-text">导入修为</text>
+      </view>
+    </view>
+  </view>
+</van-popup>
+
+<!-- 【导入数据弹窗】 -->
+<van-popup 
+  show="{{ showImportPopup }}" 
+  bind:close="closeImportPopup"
+  custom-style="background: transparent;" 
+  z-index="1000"
+>
+  <view class="import-container">
+    <view class="import-header">
+      <text class="import-title">导入修为</text>
+    </view>
+    <view class="import-content">
+      <text class="import-desc">将导出的修为粘贴到下方输入框进行导入，注意导入将会覆盖现有修炼数据，无法撤回！</text>
+      <textarea 
+        class="import-textarea" 
+        value="{{ importData }}" 
+        bindinput="onImportDataInput" 
+        placeholder="请粘贴导出的修为数据..."
+        placeholder-style="color: #999;"
+        maxlength="10000"
+        auto-height
+        style="min-height: 400rpx;"
+      ></textarea>
+      <view class="import-actions">
+        <view class="import-action-button cancel" bind:tap="closeImportPopup">
+          <image class="button-bg" src="/images/button-bg-cancel.png" />
+          <text class="button-text">取消</text>
+        </view>
+        <view class="import-action-button confirm" bind:tap="onConfirmImport">
+          <image class="button-bg" src="/images/button-bg-confirm.png" />
+          <text class="button-text">确认</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</van-popup>
+
+<!-- 【确认覆盖弹窗】 -->
+<van-popup 
+  show="{{ showConfirmPopup }}" 
+  bind:close="closeConfirmPopup"
+  custom-style="background: transparent;" 
+  z-index="1000"
+>
+  <view class="import-container">
+    <view class="import-header">
+      <text class="import-title">确认覆盖</text>
+    </view>
+    <view class="import-content">
+      <text class="import-desc">导入将覆盖当前所有数据，是否确认？</text>
+      <view class="import-actions">
+        <view class="import-action-button cancel" bind:tap="closeConfirmPopup">
+          <image class="button-bg" src="/images/button-bg-cancel.png" />
+          <text class="button-text">取消</text>
+        </view>
+        <view class="import-action-button confirm" bind:tap="onConfirmImportData">
+          <image class="button-bg" src="/images/button-bg-confirm.png" />
+          <text class="button-text">确认</text>
+        </view>
+      </view>
+    </view>
   </view>
 </van-popup>

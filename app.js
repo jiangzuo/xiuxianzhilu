@@ -13,8 +13,19 @@ App({
     // 必须在 App 启动最开始调用，确保后续页面能直接从内存读取数据
     CacheManager.init();
 
-    // 2. 加载自定义字体
+    // 2. 记录登录时间
+    this.recordLoginDate();
+
+    // 3. 加载自定义字体
     this.loadCustomFont();
+  },
+
+  recordLoginDate() {
+    const today = new Date().toDateString();
+    const lastLoginDate = wx.getStorageSync('lastLoginDate');
+    if (lastLoginDate !== today) {
+      wx.setStorageSync('lastLoginDate', today);
+    }
   },
   
 
