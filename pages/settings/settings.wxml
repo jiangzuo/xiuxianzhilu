@@ -28,7 +28,7 @@
         这个循环的唯一目的，就是告诉 van-tabs 需要渲染哪些导航标签。
         每个 van-tab 的内容都是空的，不会占用任何空间。
       -->
-      <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:key="key">
+      <block wx:for="{{ userpractices }}" wx:for-index="key" wx:key="key">
         <van-tab title="{{ categoryMap[key] }}" name="{{ key }}"></van-tab>
       </block>
     </van-tabs>
@@ -37,7 +37,7 @@
   <!-- 2. “滚动区”容器 -->
   <view class="scroll-container">
     <!-- 我们在这里根据 activeTab 的值，只渲染对应的那一个内容面板 -->
-    <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:for-item="categoryItems" wx:key="key">
+    <block wx:for="{{ userpractices }}" wx:for-index="key" wx:for-item="categoryItems" wx:key="key">
       <view class="tab-content" wx:if="{{ activeTab === key }}">
         <view class="container">
           <view class="gongfa-grid-container">

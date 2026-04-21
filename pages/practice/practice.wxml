@@ -20,7 +20,7 @@
       tab-active-class="practice-tab-active"
     >
       <!-- 这个循环的唯一目的，就是告诉 van-tabs 需要渲染哪些导航标签 -->
-      <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:key="key">
+      <block wx:for="{{ userpractices }}" wx:for-index="key" wx:key="key">
         <van-tab title="{{ categoryMap[key] }}" name="{{ key }}"></van-tab>
       </block>
     </van-tabs>
@@ -29,7 +29,7 @@
   <!-- 2. “滚动区”容器 -->
   <view class="scroll-container">
     <!-- 我们在这里根据 activeTab 的值，只渲染对应的那一个内容面板 -->
-    <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:for-item="categoryItems" wx:key="key">
+    <block wx:for="{{ userpractices }}" wx:for-index="key" wx:for-item="categoryItems" wx:key="key">
       <view class="tab-content" wx:if="{{ activeTab === key }}">
         <view class="container">
           <view class="category-exp-header">
@@ -75,64 +75,18 @@
 </view>
 
 <!-- 境界突破弹窗 -->
-<view class="level-up-mask {{ pageClass }}" wx:if="{{ showLevelUp }}" bind:tap="closeLevelUp">
-  
-  <image class="level-up-bg" src="/images/level-up-bg.png" mode="widthFix" />
-  
-  <view class="level-up-content" animation="{{ levelUpAnimation }}">
-    
-    <view class="level-up-orb-wrapper">
-      <image class="level-up-orb-bg" src="/images/level-up-orb.png" />
-      <view class="level-up-orb-text">
-        <!-- 【位置就在这里】 -->
-        <view class="level-text">{{ formatter.CJKType(levelUpInfo.levelName) }}</view>
-      </view>
-    </view>
-    
-    <view class="level-up-desc">{{ levelUpInfo.description }}</view>
-    
-    <view class="level-up-confirm" catch:tap="closeLevelUp">
-      <image class="confirm-button-bg" src="/images/button-bg-confirm.png" />
-      <text class="confirm-button-text">确认</text>
-    </view>
+<level-up-modal
+  show="{{showLevelUp}}"
+  oldLevel="{{levelUpInfo}}"
+  newLevel="{{levelUpInfo}}"
+  bind:close="closeLevelUp"
+/>
 
-  </view>
-</view>```
-
-<!-- 【新增】修炼结算弹窗 -->
-<view class="settlement-mask" wx:if="{{ showSettlement }}" catch:touchmove="true">
-  <view class="dialog-container">
-    <!-- 复用通用弹窗背景 -->
-    <image class="dialog-bg" src="/images/dialog-bg.png" mode="scaleToFill" />
-    
-    <view class="dialog-content">
-      <!-- 1. 顶部提示语 -->
-      <view class="settle-title">
-        恭喜！获得 <text class="highlight-num">{{ settlementInfo.exp }}</text> 点修为
-      </view>
-      <view class="settle-subtitle">
-        对{{ settlementInfo.categoryName }}的领悟有所提升
-      </view>
-
-      <!-- 2. 属性变化展示 (根据截图布局) -->
-      <view class="settle-attrs">
-        <block wx:for="{{ settlementInfo.attrChanges }}" wx:key="label">
-          <view class="attr-change-item">
-            <text class="attr-label">{{ item.label }}：</text>
-            <text class="attr-val">{{ item.val }}</text>
-            <!-- 红色上升箭头 -->
-            <text class="attr-arrow">↑</text>
-          </view>
-        </block>
-      </view>
-
-      <!-- 3. 确认按钮 -->
-      <view class="dialog-actions">
-        <view class="action-button confirm" bind:tap="closeSettlement">
-          <image class="button-bg" src="/images/button-bg-confirm.png" />
-          <text class="button-text">确认</text>
-        </view>
-      </view>
-    </view>
-  </view>
-</view>
+<!-- 修炼结算弹窗 -->
+<practice-result
+  show="{{showSettlement}}"
+  exp="{{settlementInfo.exp}}"
+  categoryName="{{settlementInfo.categoryName}}"
+  attrChanges="{{settlementInfo.attrChanges}}"
+  bind:close="closeSettlement"
+/>

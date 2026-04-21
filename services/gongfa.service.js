@@ -1,4 +1,4 @@
-// services/gongfa.service.js
+// services/gongfa.service.js 功法配置逻辑
 const Cache = require('../utils/cache-manager');
 
 // 辅助：生成UUID (再次复用，后期可以提取到 utils/util.js)
@@ -14,14 +14,15 @@ const GongfaService = {
    * 添加新功法
    */
   addGongfa(category, gongfaTemplate) {
-    const data = Cache.get('userCultivations');
+    console.log('[Gongfa] addGongfa params:', JSON.stringify(gongfaTemplate));
+    const data = Cache.get('userpractices');
     const list = data[category];
 
     // 1. 查重逻辑 (包含复活归隐功法)
     const archivedItem = list.find(item => item.name === gongfaTemplate.name && item.status === 'archived');
     if (archivedItem) {
       delete archivedItem.status; // 复活
-      Cache.set('userCultivations', data);
+      Cache.set('userpractices', data);
       return { success: true, msg: '功法已复原', isRestore: true };
     }
 
@@ -37,11 +38,11 @@ const GongfaService = {
       exp: gongfaTemplate.exp,
       count: 0,
       totalExpEarned: 0,
-      ...gongfaTemplate // 合并其他属性
+      ...gongfaTemplate
     };
 
     list.push(newGongfa);
-    Cache.set('userCultivations', data);
+    Cache.set('userpractices', data);
     return { success: true, msg: '编入成功' };
   },
 
@@ -49,12 +50,12 @@ const GongfaService = {
    * 归隐(删除)功法
    */
   archiveGongfa(category, id) {
-    const data = Cache.get('userCultivations');
+    const data = Cache.get('userpractices');
     const index = data[category].findIndex(item => item.id === id);
     
     if (index > -1) {
       data[category][index].status = 'archived';
-      Cache.set('userCultivations', data);
+      Cache.set('userpractices', data);
       return true;
     }
     return false;

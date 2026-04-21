@@ -496,7 +496,7 @@ import Dialog from '@vant/weapp/dialog/dialog';
 import Notify from '@vant/weapp/notify/notify';
 const app = getApp();
 // 【引入 Service】
-const CultivationService = require('../../services/cultivation.service');
+const practiceService = require('../../services/practice.service');
 
 Page({
   data: {
@@ -508,11 +508,11 @@ Page({
     showCustomDialog: false,
     dialogTitle: '',
     dialogMessage: '',
-    tempCultivationData: null,
+    temppracticeData: null,
     
     // 数据源
     activeTab: 'body',
-    userCultivations: { body: [], mind: [], skill: [], wealth: [] },
+    userpractices: { body: [], mind: [], skill: [], wealth: [] },
     totalExpMap: { body: 0, mind: 0, skill: 0, wealth: 0 },
     
     // 静态配置
@@ -583,18 +583,18 @@ Page({
    */
   refreshData() {
     // 1. 获取列表数据
-    const cultivations = CultivationService.getCultivationData();
+    const practices = practiceService.getpracticeData();
     
     // 2. 获取各类总经验 (简单计算或让Service提供)
     const totalExpMap = {
-      body: CultivationService.calculateCategoryExp(cultivations.body),
-      mind: CultivationService.calculateCategoryExp(cultivations.mind),
-      skill: CultivationService.calculateCategoryExp(cultivations.skill),
-      wealth: CultivationService.calculateCategoryExp(cultivations.wealth),
+      body: practiceService.calculateCategoryExp(practices.body),
+      mind: practiceService.calculateCategoryExp(practices.mind),
+      skill: practiceService.calculateCategoryExp(practices.skill),
+      wealth: practiceService.calculateCategoryExp(practices.wealth),
     };
 
     this.setData({ 
-      userCultivations: cultivations,
+      userpractices: practices,
       totalExpMap: totalExpMap
     });
   },
@@ -611,18 +611,18 @@ Page({
       showCustomDialog: true,
       dialogTitle: '确认修炼',
       dialogMessage: `是否要完成一次【${gongfa.name}】的修炼？`,
-      tempCultivationData: { gongfa, category } 
+      temppracticeData: { gongfa, category } 
     });
   },
 
   onDialogConfirm() {
-    const { gongfa, category } = this.data.tempCultivationData;
+    const { gongfa, category } = this.data.temppracticeData;
     this.setData({ isCultivating: true });
     
     // 模拟修炼过程
     setTimeout(() => {
       this.setData({ isCultivating: false });
-      this.processCultivationResult(gongfa, category);
+      this.processpracticeResult(gongfa, category);
     }, 1500);
   },
 
@@ -630,19 +630,19 @@ Page({
    * 【核心重构】处理修炼结果
    * 调用 Service 执行业务逻辑，页面只负责展示结果
    */
-  processCultivationResult(gongfa, category) {
+  processpracticeResult(gongfa, category) {
     // 1. 记录修炼前的等级 (用于判断升级)
-    const oldLevelInfo = CultivationService.getCurrentLevelInfo();
+    const oldLevelInfo = practiceService.getCurrentLevelInfo();
 
     // 2. 调用 Service 执行修炼 (核心写操作)
-    const result = CultivationService.doPractice(gongfa.id, category);
+    const result = practiceService.doPractice(gongfa.id, category);
 
     if (result.success) { 
       // 3. 刷新界面数据
       this.refreshData();
 
       // 4. 判断升级
-      const newLevelInfo = CultivationService.getCurrentLevelInfo();
+      const newLevelInfo = practiceService.getCurrentLevelInfo();
       if (newLevelInfo.level > oldLevelInfo.level) {
         // --- 触发升级弹窗 ---
         const breakthroughDesc = newLevelInfo.breakthroughDesc || this.data.levelUpInfo.description;
@@ -757,7 +757,7 @@ Page({
       tab-active-class="practice-tab-active"
     >
       <!-- 这个循环的唯一目的，就是告诉 van-tabs 需要渲染哪些导航标签 -->
-      <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:key="key">
+      <block wx:for="{{ userpractices }}" wx:for-index="key" wx:key="key">
         <van-tab title="{{ categoryMap[key] }}" name="{{ key }}"></van-tab>
       </block>
     </van-tabs>
@@ -766,7 +766,7 @@ Page({
   <!-- 2. “滚动区”容器 -->
   <view class="scroll-container">
     <!-- 我们在这里根据 activeTab 的值，只渲染对应的那一个内容面板 -->
-    <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:for-item="categoryItems" wx:key="key">
+    <block wx:for="{{ userpractices }}" wx:for-index="key" wx:for-item="categoryItems" wx:key="key">
       <view class="tab-content" wx:if="{{ activeTab === key }}">
         <view class="container">
           <view class="category-exp-header">
@@ -1276,7 +1276,7 @@ page {
 --- FILE START: D:\daima\xiuxian\pages\profile\profile.js ---
 // pages/profile/profile.js
 const app = getApp();
-const CultivationService = require('../../services/cultivation.service');
+const practiceService = require('../../services/practice.service');
 const { QUOTES_LIBRARY } = require('../../utils/level-data.js');
 
 Page({
@@ -1327,8 +1327,8 @@ Page({
   },
 
   refreshData() {
-    const levelInfo = CultivationService.getCurrentLevelInfo();
-    const attributes = CultivationService.calculateAttributes();
+    const levelInfo = practiceService.getCurrentLevelInfo();
+    const attributes = practiceService.calculateAttributes();
     this.setData({ userInfo: levelInfo, userAttributes: attributes });
   },
 
@@ -1949,7 +1949,7 @@ const { GONGFA_LIBRARY } = require('../../utils/gongfa-data.js');
 const app = getApp();
 // 【引入 Service】
 const GongfaService = require('../../services/gongfa.service');
-const CultivationService = require('../../services/cultivation.service');
+const practiceService = require('../../services/practice.service');
 
 Page({
   data: {
@@ -1963,7 +1963,7 @@ Page({
     // 数据源
     activeTab: 'body',
     gongfaLibrary: GONGFA_LIBRARY, // Picker 仍需依赖此静态数据
-    userCultivations: { body: [], mind: [], skill: [], wealth: [] },
+    userpractices: { body: [], mind: [], skill: [], wealth: [] },
     
     // 静态配置
     categoryMap: { body: '体修', mind: '心修', skill: '术修', wealth: '财修' }, 
@@ -2002,11 +2002,11 @@ Page({
 
   /**
    * 【核心重构】刷新功法列表
-   * 直接从 CultivationService 获取最新的全量数据 (包含内存缓存支持)
+   * 直接从 practiceService 获取最新的全量数据 (包含内存缓存支持)
    */
   refreshList() {
-    const cultivations = CultivationService.getCultivationData();
-    this.setData({ userCultivations: cultivations });
+    const practices = practiceService.getpracticeData();
+    this.setData({ userpractices: practices });
   },
 
   // --- 删除逻辑 ---
@@ -2067,7 +2067,7 @@ Page({
   onEditGongfa(event) {
     const { id } = event.currentTarget.dataset;
     const categoryKey = this.data.activeTab;
-    const userGongfaList = this.data.userCultivations[categoryKey];
+    const userGongfaList = this.data.userpractices[categoryKey];
     const editingGongfa = userGongfaList.find(item => item.id === id);
     
     if (!editingGongfa) return;
@@ -2270,7 +2270,7 @@ Page({
         这个循环的唯一目的，就是告诉 van-tabs 需要渲染哪些导航标签。
         每个 van-tab 的内容都是空的，不会占用任何空间。
       -->
-      <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:key="key">
+      <block wx:for="{{ userpractices }}" wx:for-index="key" wx:key="key">
         <van-tab title="{{ categoryMap[key] }}" name="{{ key }}"></van-tab>
       </block>
     </van-tabs>
@@ -2279,7 +2279,7 @@ Page({
   <!-- 2. “滚动区”容器 -->
   <view class="scroll-container">
     <!-- 我们在这里根据 activeTab 的值，只渲染对应的那一个内容面板 -->
-    <block wx:for="{{ userCultivations }}" wx:for-index="key" wx:for-item="categoryItems" wx:key="key">
+    <block wx:for="{{ userpractices }}" wx:for-index="key" wx:for-item="categoryItems" wx:key="key">
       <view class="tab-content" wx:if="{{ activeTab === key }}">
         <view class="container">
           <view class="gongfa-grid-container">
@@ -2669,7 +2669,7 @@ page {
 // utils/cache-manager.js
 let _memCache = {
   userProfile: null,
-  userCultivations: null,
+  userpractices: null,
   // 【新增】AI 深度记忆 (软数据)
   deepMemory: {
     basic: { name: "", age: "", gender: "", job: "" }, 
@@ -2685,7 +2685,7 @@ const CacheManager = {
     try {
       console.log('【Cache】开始初始化...');
       _memCache.userProfile = wx.getStorageSync('userProfile') || null;
-      _memCache.userCultivations = wx.getStorageSync('userCultivations') || null;
+      _memCache.userpractices = wx.getStorageSync('userpractices') || null;
       
       // 初始化深度记忆
       _memCache.deepMemory = wx.getStorageSync('deepMemory') || {
@@ -2932,7 +2932,7 @@ const SYSTEM_PROMPT = `
 {recent_activity_log}
 
 ## 3. 本命功法 (最勤勉的 Top20)
-{cultivation_stats}
+{practice_stats}
 
 ## 4. 道心画像 (暗中观察)
 {soft_info_text}
@@ -3222,8 +3222,8 @@ module.exports = ChatService;
 --- FILE END: D:\daima\xiuxian\services\chat.service.js ---
 
 
---- FILE START: D:\daima\xiuxian\services\cultivation.service.js ---
-// services/cultivation.service.js
+--- FILE START: D:\daima\xiuxian\services\practice.service.js ---
+// services/practice.service.js
 const Cache = require('../utils/cache-manager');
 const { LEVEL_SYSTEM } = require('../utils/level-data');
 // 注意：这里不引入 ChatService 避免循环引用，只负责写 Storage
@@ -3235,15 +3235,15 @@ const uuid = () => {
   });
 };
 
-const CultivationService = {
-  // ... (getCultivationData, calculateCategoryExp, calculateAttributes 保持不变) ...
-  getCultivationData() {
-    let data = Cache.get('userCultivations');
+const practiceService = {
+  // ... (getpracticeData, calculateCategoryExp, calculateAttributes 保持不变) ...
+  getpracticeData() {
+    let data = Cache.get('userpractices');
     if (!data || typeof data !== 'object') {
       data = { body: [], mind: [], skill: [], wealth: [] };
       // 初始化默认功法
       data.body.push({ id: uuid(), name: '散步 30分钟', exp: 5, count: 0, totalExpEarned: 0 });
-      Cache.set('userCultivations', data);
+      Cache.set('userpractices', data);
     }
     // 容错
     ['body', 'mind', 'skill', 'wealth'].forEach(k => { if(!data[k]) data[k] = []; });
@@ -3256,7 +3256,7 @@ const CultivationService = {
   },
 
   calculateAttributes() {
-    const data = this.getCultivationData();
+    const data = this.getpracticeData();
     const bodyExp = this.calculateCategoryExp(data.body);
     const mindExp = this.calculateCategoryExp(data.mind);
     const skillExp = this.calculateCategoryExp(data.skill);
@@ -3303,7 +3303,7 @@ const CultivationService = {
 
   // --- 【核心】执行修炼 ---
   doPractice(gongfaId, category, expGain = null) {
-    const data = this.getCultivationData();
+    const data = this.getpracticeData();
     const list = data[category];
     const index = list.findIndex(item => item.id === gongfaId);
 
@@ -3316,7 +3316,7 @@ const CultivationService = {
     item.count = (item.count || 0) + 1;
     item.totalExpEarned = (item.totalExpEarned || 0) + finalExp;
     data[category][index] = item;
-    Cache.set('userCultivations', data);
+    Cache.set('userpractices', data);
 
     // 2. 【新增】写入详细日志
     this._addLog(item.name, category, finalExp);
@@ -3349,8 +3349,8 @@ const CultivationService = {
   }
 };
 
-module.exports = CultivationService;
---- FILE END: D:\daima\xiuxian\services\cultivation.service.js ---
+module.exports = practiceService;
+--- FILE END: D:\daima\xiuxian\services\practice.service.js ---
 
 
 --- FILE START: D:\daima\xiuxian\services\gongfa.service.js ---
@@ -3370,14 +3370,14 @@ const GongfaService = {
    * 添加新功法
    */
   addGongfa(category, gongfaTemplate) {
-    const data = Cache.get('userCultivations');
+    const data = Cache.get('userpractices');
     const list = data[category];
 
     // 1. 查重逻辑 (包含复活归隐功法)
     const archivedItem = list.find(item => item.name === gongfaTemplate.name && item.status === 'archived');
     if (archivedItem) {
       delete archivedItem.status; // 复活
-      Cache.set('userCultivations', data);
+      Cache.set('userpractices', data);
       return { success: true, msg: '功法已复原', isRestore: true };
     }
 
@@ -3397,7 +3397,7 @@ const GongfaService = {
     };
 
     list.push(newGongfa);
-    Cache.set('userCultivations', data);
+    Cache.set('userpractices', data);
     return { success: true, msg: '编入成功' };
   },
 
@@ -3405,12 +3405,12 @@ const GongfaService = {
    * 归隐(删除)功法
    */
   archiveGongfa(category, id) {
-    const data = Cache.get('userCultivations');
+    const data = Cache.get('userpractices');
     const index = data[category].findIndex(item => item.id === id);
     
     if (index > -1) {
       data[category][index].status = 'archived';
-      Cache.set('userCultivations', data);
+      Cache.set('userpractices', data);
       return true;
     }
     return false;
@@ -3422,7 +3422,7 @@ module.exports = GongfaService;
 
 
 --- FILE START: D:\daima\xiuxian\services\memory.service.js ---
-const CultivationService = require('./cultivation.service');
+const practiceService = require('./practice.service');
 const ChatService = require('./chat.service');
 const Cache = require('../utils/cache-manager');
 const UserService = require('./user.service');
@@ -3447,9 +3447,9 @@ const MemoryService = {
   buildSystemMessage() {
     // --- A. 获取硬数据 ---
     const profile = UserService.getUserProfile();
-    const levelInfo = CultivationService.getCurrentLevelInfo();
-    const attrs = CultivationService.calculateAttributes();
-    const logs = CultivationService.getRecentLogs(5); 
+    const levelInfo = practiceService.getCurrentLevelInfo();
+    const attrs = practiceService.calculateAttributes();
+    const logs = practiceService.getRecentLogs(5); 
     
     // --- B. 获取软数据 ---
     const memory = Cache.get('deepMemory') || { 
@@ -3479,7 +3479,7 @@ const MemoryService = {
     }
 
     // 3. 格式化本命功法 (Top 20)
-    const cultData = CultivationService.getCultivationData();
+    const cultData = practiceService.getpracticeData();
     const allGongfas = [
       ...cultData.body, ...cultData.mind, ...cultData.skill, ...cultData.wealth
     ].filter(item => item.count > 0);
@@ -3501,7 +3501,7 @@ const MemoryService = {
     let content = SYSTEM_PROMPT
       .replace('{hard_info_text}', hardInfoStr)
       .replace('{recent_activity_log}', recentLogStr)
-      .replace('{cultivation_stats}', gongfaStatsStr)
+      .replace('{practice_stats}', gongfaStatsStr)
       .replace('{soft_info_text}', softInfoStr)
       .replace('{rolling_summary}', memory.summary || "暂无前情");
 

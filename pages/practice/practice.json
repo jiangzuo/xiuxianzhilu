@@ -1,6 +1,9 @@
 
 {
   "usingComponents": {
-    "custom-dialog": "/components/custom-dialog"},
+    "custom-dialog": "/components/custom-dialog/custom-dialog",
+    "practice-result": "/components/practice-result/practice-result",
+    "level-up-modal": "/components/level-up-modal/level-up-modal"
+  },
   "navigationStyle": "custom"
 }

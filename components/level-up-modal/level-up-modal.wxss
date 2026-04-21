@@ -1,0 +1,98 @@
+.level-up-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+  padding: 64rpx;
+  box-sizing: border-box;
+}
+
+.level-up-bg {
+  position: absolute;
+  width: 90%;
+  max-width: 680rpx;
+  z-index: 1;
+}
+
+.level-up-content {
+  width: 90%;
+  max-width: 680rpx;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.level-up-orb-wrapper {
+  position: relative;
+  width: 360rpx; 
+  height: 360rpx;
+  margin-top: -120rpx;
+}
+
+.level-up-orb-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.level-up-orb-text {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #fff;
+  white-space: pre-wrap;
+  text-align: center;
+}
+
+.level-text {
+  font-size: 72rpx;
+  font-weight: bold;
+  line-height: 1.3;
+}
+
+.level-up-desc {
+  font-size: 28rpx;
+  color: #5c5241;
+  line-height: 1.8;
+  text-align: justify;
+  margin-top: 48rpx;
+  padding: 0 48rpx;
+}
+
+.level-up-confirm {
+  width: 240rpx;
+  height: 80rpx;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 64rpx;
+}
+
+.confirm-button-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.confirm-button-text {
+  position: relative;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #fff;
+}

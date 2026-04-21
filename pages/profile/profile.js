@@ -1,6 +1,6 @@
 // pages/profile/profile.js
 const app = getApp();
-const CultivationService = require('../../services/cultivation.service');
+const practiceService = require('../../services/practice.service');
 const ImportExportService = require('../../services/import-export.service');
 const { QUOTES_LIBRARY } = require('../../utils/level-data.js');
 const GREETINGS = require('../../utils/greetings.js');
@@ -65,8 +65,8 @@ Page({
   },
 
   refreshData() {
-    const levelInfo = CultivationService.getCurrentLevelInfo();
-    const attributes = CultivationService.calculateAttributes();
+    const levelInfo = practiceService.getCurrentLevelInfo();
+    const attributes = practiceService.calculateAttributes();
     this.setData({ userInfo: levelInfo, userAttributes: attributes });
   },
 

@@ -16,8 +16,6 @@
   width: 80%;
   max-width: 600rpx;
   position: relative;
-  
-  /* 【核心改造】应用隶书字体 */
   font-family: 'LishuFont', sans-serif;
 }
 
@@ -85,7 +83,5 @@
   z-index: 2;
   font-size: 28rpx;
   font-weight: 500;
-  
-  /* 【核心改造】将按钮文字颜色改为白色 */
-  color: #ffffff; 
+  color: #ffffff;
 }

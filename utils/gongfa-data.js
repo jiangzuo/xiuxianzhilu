@@ -64,6 +64,8 @@ const GONGFA_LIBRARY = {
     { key: 'mind_early_rise', name: '早起', unit: '1次', exp: 5 },
     { key: 'mind_abstinence', name: '戒色', unit: '1次', exp: 5 },
     { key: 'calligraphy_mind', name: '练字（心）', unit: '1次', exp: 5 },
+    { key: 'heart-demon-fear', name: '心魔修炼-（恐惧）', unit: '1次', exp: 5 },
+    { key: 'heart-demon-regret', name: '心魔修炼-（后悔）', unit: '1次', exp: 5 },
   ],
 
 // === 术修 (Skill) ===

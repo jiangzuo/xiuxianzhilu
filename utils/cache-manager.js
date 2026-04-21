@@ -1,7 +1,7 @@
 // utils/cache-manager.js
 let _memCache = {
   userProfile: null,
-  userCultivations: null,
+  userpractices: null,
   // 【新增】AI 深度记忆 (软数据)
   deepMemory: {
     basic: { name: "", age: "", gender: "", job: "" }, 
@@ -17,7 +17,7 @@ const CacheManager = {
     try {
       console.log('【Cache】开始初始化...');
       _memCache.userProfile = wx.getStorageSync('userProfile') || null;
-      _memCache.userCultivations = wx.getStorageSync('userCultivations') || null;
+      _memCache.userpractices = wx.getStorageSync('userpractices') || null;
       
       // 初始化深度记忆
       _memCache.deepMemory = wx.getStorageSync('deepMemory') || {

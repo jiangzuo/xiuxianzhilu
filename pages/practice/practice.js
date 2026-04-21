@@ -3,7 +3,7 @@ import Dialog from '@vant/weapp/dialog/dialog';
 import Notify from '@vant/weapp/notify/notify';
 const app = getApp();
 // 【引入 Service】
-const CultivationService = require('../../services/cultivation.service');
+const practiceService = require('../../services/practice.service');
 const DailyTaskService = require('../../services/daily-task.service');
 
 Page({
@@ -16,11 +16,11 @@ Page({
     showCustomDialog: false,
     dialogTitle: '',
     dialogMessage: '',
-    tempCultivationData: null,
+    temppracticeData: null,
     
     // 数据源
     activeTab: 'body',
-    userCultivations: { body: [], mind: [], skill: [], wealth: [] },
+    userpractices: { body: [], mind: [], skill: [], wealth: [] },
     totalExpMap: { body: 0, mind: 0, skill: 0, wealth: 0 },
     
     // 静态配置
@@ -40,8 +40,7 @@ Page({
       levelName: '',
       description: '你的修为有了新的精进，对大道的理解更深了一层。' 
     },
-    levelUpAnimation: {},
-     // 结算弹窗相关数据
+    // 结算弹窗相关数据
      showSettlement: false,
      settlementInfo: {
        exp: 0,
@@ -115,18 +114,18 @@ Page({
    */
   refreshData() {
     // 1. 获取列表数据
-    const cultivations = CultivationService.getCultivationData();
+    const practices = practiceService.getpracticeData();
     
     // 2. 获取各类总经验 (简单计算或让Service提供)
     const totalExpMap = {
-      body: CultivationService.calculateCategoryExp(cultivations.body),
-      mind: CultivationService.calculateCategoryExp(cultivations.mind),
-      skill: CultivationService.calculateCategoryExp(cultivations.skill),
-      wealth: CultivationService.calculateCategoryExp(cultivations.wealth),
+      body: practiceService.calculateCategoryExp(practices.body),
+      mind: practiceService.calculateCategoryExp(practices.mind),
+      skill: practiceService.calculateCategoryExp(practices.skill),
+      wealth: practiceService.calculateCategoryExp(practices.wealth),
     };
 
     this.setData({ 
-      userCultivations: cultivations,
+      userpractices: practices,
       totalExpMap: totalExpMap
     });
   },
@@ -143,18 +142,18 @@ Page({
       showCustomDialog: true,
       dialogTitle: '确认修炼',
       dialogMessage: `是否要完成一次【${gongfa.name}】的修炼？`,
-      tempCultivationData: { gongfa, category } 
+      temppracticeData: { gongfa, category } 
     });
   },
 
   onDialogConfirm() {
-    const { gongfa, category } = this.data.tempCultivationData;
+    const { gongfa, category } = this.data.temppracticeData;
     this.setData({ isCultivating: true });
     
     // 模拟修炼过程
     setTimeout(() => {
       this.setData({ isCultivating: false });
-      this.processCultivationResult(gongfa, category);
+      this.processpracticeResult(gongfa, category);
     }, 1500);
   },
 
@@ -162,14 +161,12 @@ Page({
    * 处理修炼结果
    * 调用 Service 执行业务逻辑，页面只负责展示结果
    */
-  processCultivationResult(gongfa, category) {
-    const oldLevelInfo = CultivationService.getCurrentLevelInfo();
-
+  processpracticeResult(gongfa, category) {
     const isDailyTask = this.data.isDailyTask && this.data.targetGongfaId === gongfa.id;
     const baseExp = gongfa.exp || 10;
     const finalExp = isDailyTask ? baseExp * 2 : baseExp;
 
-    let result = CultivationService.doPractice(gongfa.id, category, finalExp);
+    let result = practiceService.doPractice(gongfa.id, category, finalExp);
 
     if (result.success) {
       if (isDailyTask) {
@@ -188,74 +185,30 @@ Page({
 
       this.refreshData();
 
-      const newLevelInfo = CultivationService.getCurrentLevelInfo();
-      if (newLevelInfo.level > oldLevelInfo.level) {
-        const breakthroughDesc = newLevelInfo.breakthroughDesc || this.data.levelUpInfo.description;
+      if (result.isLevelUp) {
         this.setData({
-          'levelUpInfo.levelName': newLevelInfo.name,
-          'levelUpInfo.description': breakthroughDesc,
-          showLevelUp: true
+          showLevelUp: true,
+          levelUpInfo: {
+            ...result.newLevel,
+            levelName: result.newLevel.name,
+            description: result.newLevel.breakthroughDesc || '你的修为有了新的精进，对大道的理解更深了一层。'
+          }
         });
-        
-        const animation = wx.createAnimation({ duration: 400, timingFunction: 'ease' });
-        wx.nextTick(() => {
-          animation.scale(1).opacity(1).step();
-          this.setData({ levelUpAnimation: animation.export() });
+      } else if (result.settlement) {
+        this.setData({
+          showSettlement: true,
+          settlementInfo: result.settlement
         });
-      } else {
-         this.showSettlementModal(finalExp, category, finalExp);
-        }
-      } else {
-        wx.showToast({ title: '修炼数据异常', icon: 'none' });
       }
-    },
-  
-    // 【新增】显示结算弹窗
-    showSettlementModal(baseExp, category, finalExp) {
-      const changes = [];
-      
-      const addedExp = finalExp !== undefined ? finalExp : baseExp;
-      const attrIncrement = parseFloat((addedExp / 500).toFixed(3)); 
-      const lifeIncrement = parseFloat((addedExp / 1000).toFixed(3)); 
-  
-      if (category === 'body') {
-        changes.push({ label: '寿元', val: lifeIncrement });
-        changes.push({ label: '体质', val: attrIncrement });
-      } else if (category === 'mind') {
-        changes.push({ label: '寿元', val: lifeIncrement });
-        changes.push({ label: '心境', val: attrIncrement });
-      } else if (category === 'skill') {
-        changes.push({ label: '智慧', val: attrIncrement });
-      } else if (category === 'wealth') {
-        changes.push({ label: '财富', val: attrIncrement });
-      }
-  
-      // 2. 设置数据并显示
-      this.setData({
-        showSettlement: true,
-        settlementInfo: {
-          exp: addedExp,
-          categoryName: this.data.categoryMap[category],
-          attrChanges: changes
-        }
-      });
-    },
-  
-    // 【新增】关闭结算弹窗
-    closeSettlement() {
-      this.setData({ showSettlement: false });
-    },
-  // --- 升级弹窗关闭逻辑 (保持不变) ---
+    }
+  },
+
+  closeSettlement() {
+    this.setData({ showSettlement: false });
+  },
+
   closeLevelUp() {
-    const animation = wx.createAnimation({ duration: 300, timingFunction: 'ease' });
-    animation.scale(0.5).opacity(0).step();
-    this.setData({ levelUpAnimation: animation.export() });
-    
-    setTimeout(() => {
-      this.setData({ showLevelUp: false });
-      // 移除 TabBar 红点逻辑 (如果之前有的话)
-      // wx.removeTabBarBadge({ index: 1 }); 
-    }, 300);
+    this.setData({ showLevelUp: false });
   },
 
   navigateToSettings() {

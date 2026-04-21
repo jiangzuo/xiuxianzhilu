@@ -1,5 +1,6 @@
 {
   "usingComponents": {
-    "custom-dialog": "/components/custom-dialog"},
+    "custom-dialog": "/components/custom-dialog/custom-dialog"
+  },
   "navigationStyle": "custom"
 }

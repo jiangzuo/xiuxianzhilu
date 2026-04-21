@@ -1,19 +1,19 @@
 // services/import-export.service.js
 const Cache = require('../utils/cache-manager');
-const CultivationService = require('./cultivation.service');
+const practiceService = require('./practice.service');
 
 const ImportExportService = {
   // 导出数据
   exportData() {
     try {
       // 获取功法数据
-      const cultivations = CultivationService.getCultivationData();
+      const practices = practiceService.getpracticeData();
       
       // 构建导出数据
       const exportData = {
         version: '1.0',
         exportTime: new Date().toISOString(),
-        cultivations: cultivations
+        practices: practices
       };
       
       // 转换为JSON字符串
@@ -40,8 +40,8 @@ const ImportExportService = {
       this.validateImportData(importData);
       
       // 更新功法数据
-      const { cultivations } = importData;
-      Cache.set('userCultivations', cultivations);
+      const { practices } = importData;
+      Cache.set('userpractices', practices);
       
       return true;
     } catch (error) {
@@ -60,7 +60,7 @@ const ImportExportService = {
       throw new Error('数据格式错误：缺少版本号');
     }
     
-    if (!data.cultivations) {
+    if (!data.practices) {
       throw new Error('数据格式错误：缺少功法数据');
     }
     
@@ -72,10 +72,10 @@ const ImportExportService = {
     // 验证功法数据结构
     const categories = ['body', 'mind', 'skill', 'wealth'];
     categories.forEach(category => {
-      if (!data.cultivations.hasOwnProperty(category)) {
+      if (!data.practices.hasOwnProperty(category)) {
         throw new Error(`数据格式错误：缺少 ${category} 分类`);
       }
-      if (!Array.isArray(data.cultivations[category])) {
+      if (!Array.isArray(data.practices[category])) {
         throw new Error(`数据格式错误：${category} 必须是数组`);
       }
     });

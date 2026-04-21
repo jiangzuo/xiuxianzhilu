@@ -3,7 +3,7 @@ const { GONGFA_LIBRARY } = require('../../utils/gongfa-data.js');
 const app = getApp();
 // 【引入 Service】
 const GongfaService = require('../../services/gongfa.service');
-const CultivationService = require('../../services/cultivation.service');
+const practiceService = require('../../services/practice.service');
 
 Page({
   data: {
@@ -17,7 +17,7 @@ Page({
     // 数据源
     activeTab: 'body',
     gongfaLibrary: GONGFA_LIBRARY, // Picker 仍需依赖此静态数据
-    userCultivations: { body: [], mind: [], skill: [], wealth: [] },
+    userpractices: { body: [], mind: [], skill: [], wealth: [] },
     
     // 静态配置
     categoryMap: { body: '体修', mind: '心修', skill: '术修', wealth: '财修' }, 
@@ -44,6 +44,9 @@ Page({
     const applyFont = () => { this.setData({ pageClass: 'font-lishu' }); };
     if (app.globalData.fontLoaded) { applyFont(); }
     else { app.fontReadyCallback = app.fontReadyCallback ? app.fontReadyCallback + app.fontReadyCallback : applyFont; }
+    if (options.tab === 'mind') {
+      this.setData({ activeTab: 'mind' });
+    }
   },
 
   onShow() {
@@ -56,11 +59,11 @@ Page({
 
   /**
    * 【核心重构】刷新功法列表
-   * 直接从 CultivationService 获取最新的全量数据 (包含内存缓存支持)
+   * 直接从 practiceService 获取最新的全量数据 (包含内存缓存支持)
    */
   refreshList() {
-    const cultivations = CultivationService.getCultivationData();
-    this.setData({ userCultivations: cultivations });
+    const practices = practiceService.getpracticeData();
+    this.setData({ userpractices: practices });
   },
 
   // --- 删除逻辑 ---
@@ -121,7 +124,7 @@ Page({
   onEditGongfa(event) {
     const { id } = event.currentTarget.dataset;
     const categoryKey = this.data.activeTab;
-    const userGongfaList = this.data.userCultivations[categoryKey];
+    const userGongfaList = this.data.userpractices[categoryKey];
     const editingGongfa = userGongfaList.find(item => item.id === id);
     
     if (!editingGongfa) return;
@@ -248,8 +251,7 @@ Page({
     const gongfaTemplate = {
       name: finalName,
       exp: exp,
-      // 可以把图标或其他属性也传进去
-      // icon: selectedGongfa.icon 
+      key: selectedGongfa.key || ''
     };
 
     let result;

@@ -1,23 +1,23 @@
-// services/daily-task.service.js
+// services/daily-task.service.js 今日宜练功能
 const CacheManager = require('../utils/cache-manager');
 const AIService = require('./ai.service');
 const ChatService = require('./chat.service');
 const MemoryService = require('./memory.service');
-const { buildDailyTaskRecommendPrompt, buildDailyTaskCompletePrompt } = require('../utils/prompt-template');
+const { buildDailyTaskRecommendPrompt, buildDailyTaskCompletePrompt } = require('../prompts/skills/daily-task');
 
 const DailyTaskService = {
   /**
    * 获取功法菜单（数据预处理）
    */
   getGongfaMenu() {
-    const cultivations = CacheManager.get('userCultivations');
-    if (!cultivations) return [];
+    const practices = CacheManager.get('userpractices');
+    if (!practices) return [];
 
     const allGongfas = [
-      ...cultivations.body,
-      ...cultivations.mind,
-      ...cultivations.skill,
-      ...cultivations.wealth
+      ...practices.body,
+      ...practices.mind,
+      ...practices.skill,
+      ...practices.wealth
     ].filter(item => item.status !== 'archived');
 
     return allGongfas.map(item =>
@@ -161,12 +161,12 @@ const DailyTaskService = {
     task.completed = true;
     CacheManager.set('dailyTask', task);
 
-    const cultivations = CacheManager.get('userCultivations') || {};
-    if (cultivations[category]) {
-      const item = cultivations[category].find(i => i.id === gongfaId);
+    const practices = CacheManager.get('userpractices') || {};
+    if (practices[category]) {
+      const item = practices[category].find(i => i.id === gongfaId);
       if (item) {
         item.dailyTaskCompletedCount = (item.dailyTaskCompletedCount || 0) + 1;
-        CacheManager.set('userCultivations', cultivations);
+        CacheManager.set('userpractices', practices);
       }
     }
 
@@ -208,12 +208,12 @@ const DailyTaskService = {
    * 根据gongfaId获取分类
    */
   getCategoryByGongfaId(gongfaId) {
-    const cultivations = CacheManager.get('userCultivations');
-    if (!cultivations) return null;
+    const practices = CacheManager.get('userpractices');
+    if (!practices) return null;
 
     const categories = ['body', 'mind', 'skill', 'wealth'];
     for (const category of categories) {
-      const found = cultivations[category]?.find(item => item.id === gongfaId);
+      const found = practices[category]?.find(item => item.id === gongfaId);
       if (found) return category;
     }
     return null;

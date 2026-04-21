@@ -3,7 +3,9 @@ const ChatService = require('../../services/chat.service');
 const MemoryService = require('../../services/memory.service');
 const AIService = require('../../services/ai.service');
 const UserService = require('../../services/user.service');
+const practiceService = require('../../services/practice.service');
 const DailyTaskService = require('../../services/daily-task.service');
+const HeartDemonService = require('../../services/heart-demon.service');
 
 Page({
   data: {
@@ -26,7 +28,19 @@ Page({
       gongfaName: '',
       recommendText: '',
       isRecommending: false
-    }
+    },
+
+    isHeartDemonMode: false,
+    showDemonTypePopup: false,
+    showNoGongfaPopup: false,
+    showCompleteConfirmPopup: false,
+    selectedDemonType: null,
+    showFearOption: false,
+    showRegretOption: false,
+    showSettlement: false,
+    showLevelUp: false,
+    settlementInfo: {},
+    levelUpInfo: {}
   },
 
   onLoad() {
@@ -89,6 +103,10 @@ Page({
     wx.hideKeyboard();
   },
 
+  preventTouchMove() {
+    return;
+  },
+
   onInputFocus(e) {
     this.setData({ keyboardHeight: e.detail.height });
     this.scrollToBottom();
@@ -117,6 +135,11 @@ Page({
     if (!text || this.data.isResponding) return;
 
     this.setData({ inputText: '' });
+
+    if (this.data.isHeartDemonMode) {
+      this.handleDemonMessage(text);
+      return;
+    }
 
     // 1. 上屏用户消息
     const userMsg = ChatService.saveMessage('user', text);
@@ -318,5 +341,207 @@ Page({
     wx.reLaunch({
       url: '/pages/practice/practice'
     });
+  },
+
+  onHeartDemonTap() {
+    // 检查是否配置了心魔修炼功法
+    const demonStatus = practiceService.hasHeartDemonGongfa();
+    if (!demonStatus.hasAny) {
+      this.setData({ showNoGongfaPopup: true });
+      return;
+    }
+    // 根据用户配置的功法显示对应的选项
+    this.setData({ 
+      showDemonTypePopup: true,
+      showFearOption: demonStatus.hasFear,
+      showRegretOption: demonStatus.hasRegret
+    });
+  },
+
+  onCloseDemonPopup() {
+    this.setData({ showDemonTypePopup: false, selectedDemonType: null });
+  },
+
+  onSelectDemonType(e) {
+    const type = e.currentTarget.dataset.type;
+    this.setData({ selectedDemonType: type });
+  },
+
+  onStartDemon() {
+    const type = this.data.selectedDemonType;
+    if (!type) {
+      wx.showToast({ title: '请选择修炼类型', icon: 'none' });
+      return;
+    }
+
+    this.setData({ showDemonTypePopup: false, isHeartDemonMode: true });
+
+    const userMsg = {
+      id: Date.now(),
+      role: 'user',
+      content: `心魔修炼-${type === 'fear' ? '恐惧' : '后悔'}`,
+      timestamp: Date.now()
+    };
+    this.appendMessage(userMsg);
+
+    const aiMsgId = Date.now();
+    const aiMsgPlaceholder = {
+      id: aiMsgId,
+      timestamp: aiMsgId,
+      role: 'assistant',
+      content: '...',
+      isLoading: true
+    };
+    this.appendMessage(aiMsgPlaceholder);
+
+    HeartDemonService.start(
+      type,
+      (content) => {
+        this.updateAiMessage(aiMsgId, content, true);
+      },
+      (finalContent) => {
+        this.updateAiMessage(aiMsgId, finalContent, false);
+        this.setData({ 'dailyTask.isRecommending': false });
+        this.scrollToBottom();
+      },
+      (error) => {
+        let errorTip = error.message || '心魔修炼启动失败';
+        this.updateAiMessage(aiMsgId, errorTip, false);
+      }
+    );
+  },
+
+  onCompleteDemonTap() {
+    this.setData({ showCompleteConfirmPopup: true });
+  },
+
+  onCloseCompleteConfirmPopup() {
+    this.setData({ showCompleteConfirmPopup: false });
+  },
+
+  onConfirmComplete() {
+    this.setData({ showCompleteConfirmPopup: false });
+
+    const typeName = this.data.selectedDemonType === 'fear' ? '恐惧' : '后悔';
+    const userMsg = {
+      id: Date.now(),
+      role: 'user',
+      content: `完成心魔修炼-${typeName}`,
+      timestamp: Date.now()
+    };
+    this.appendMessage(userMsg);
+
+    const aiMsgId = Date.now();
+    const aiMsgPlaceholder = {
+      id: aiMsgId,
+      timestamp: aiMsgId,
+      role: 'assistant',
+      content: '...',
+      isLoading: true
+    };
+    this.appendMessage(aiMsgPlaceholder);
+
+    HeartDemonService.complete(
+      (content) => {
+        this.updateAiMessage(aiMsgId, content, true);
+      },
+      (finalContent, practiceResult) => {
+        this.updateAiMessage(aiMsgId, finalContent, false);
+        this.setData({ isHeartDemonMode: false });
+
+        // 根据修炼结果显示对应的弹窗
+        if (practiceResult && practiceResult.isLevelUp) {
+          // 显示升级/突破弹窗
+          this.setData({
+            showLevelUp: true,
+            levelUpInfo: {
+              oldLevel: practiceResult.oldLevel,
+              newLevel: practiceResult.newLevel
+            }
+          });
+        } else if (practiceResult && practiceResult.settlement) {
+          // 显示结算弹窗
+          this.setData({
+            showSettlement: true,
+            settlementInfo: practiceResult.settlement
+          });
+        }
+
+        this.scrollToBottom();
+      },
+      (error) => {
+        let errorTip = error.message || '完成修炼失败';
+        this.updateAiMessage(aiMsgId, errorTip, false);
+        this.setData({ isHeartDemonMode: false });
+      }
+    );
+  },
+
+  onCloseSettlement() {
+    this.setData({ showSettlement: false });
+  },
+
+  onCloseLevelUp() {
+    this.setData({ showLevelUp: false });
+  },
+
+  showPracticeCompletePopup() {
+    wx.showModal({
+      title: '修炼完成',
+      content: '恭喜！本次心魔修炼获得修为 +10',
+      showCancel: false,
+      confirmText: '知道了',
+      success: () => {
+        const practice = wx.getStorageSync('userpractice') || {};
+        practice.xiwei = (practice.xiwei || 0) + 10;
+        wx.setStorageSync('userpractice', practice);
+      }
+    });
+  },
+
+  onCloseNoGongfaPopup() {
+    this.setData({ showNoGongfaPopup: false });
+  },
+
+  onGoGongfa() {
+    this.setData({ showNoGongfaPopup: false });
+    wx.reLaunch({ 
+      url: '/pages/settings/settings?tab=mind'
+    });
+  },
+
+  handleDemonMessage(text) {
+    const userMsg = {
+      id: Date.now(),
+      role: 'user',
+      content: text,
+      timestamp: Date.now()
+    };
+    this.appendMessage(userMsg);
+
+    const aiMsgId = Date.now();
+    const aiMsgPlaceholder = {
+      id: aiMsgId,
+      timestamp: aiMsgId,
+      role: 'assistant',
+      content: '...',
+      isLoading: true
+    };
+    this.appendMessage(aiMsgPlaceholder);
+
+    HeartDemonService.sendMessage(
+      text,
+      (content) => {
+        this.updateAiMessage(aiMsgId, content, true);
+      },
+      (finalContent) => {
+        this.updateAiMessage(aiMsgId, finalContent, false);
+        this.scrollToBottom();
+      },
+      (error) => {
+        let errorTip = error.message || '传音失败';
+        this.updateAiMessage(aiMsgId, errorTip, false);
+      }
+    );
   }
-})
+});

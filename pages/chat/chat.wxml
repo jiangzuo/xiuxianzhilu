@@ -46,14 +46,102 @@
     <view id="bottom-anchor" style="height: 20rpx;"></view>
   </scroll-view>
   
-  <!-- 今日宜练按钮 (固定在聊天区域左下角) -->
+  <!-- 今日宜练和心魔修炼按钮 -->
   <view class="daily-task-fixed">
     <view class="daily-task-btn" bindtap="onDailyTaskTap">今日宜练</view>
+    <view class="daily-task-btn" bindtap="onHeartDemonTap" wx:if="{{!isHeartDemonMode}}">心魔修炼</view>
+    <view class="daily-task-btn complete-btn" bindtap="onCompleteDemonTap" wx:else>完成修炼</view>
   </view>
 </view>
 
+<!-- 心魔修炼类型选择弹窗 -->
+<view class="demon-popup-mask" wx:if="{{showDemonTypePopup}}" bindtap="onCloseDemonPopup">
+  <view class="dialog-container" catchtap="preventTouchMove">
+    <image class="dialog-bg" src="/images/dialog-bg.png" mode="stretchFix" />
+    <view class="dialog-content">
+      <view class="demon-popup-title">选择修炼的心魔</view>
+      <view class="demon-types">
+        <view class="demon-type fear {{selectedDemonType === 'fear' ? 'selected' : ''}}" wx:if="{{showFearOption}}" bindtap="onSelectDemonType" data-type="fear">恐惧</view>
+        <view class="demon-type regret {{selectedDemonType === 'regret' ? 'selected' : ''}}" wx:if="{{showRegretOption}}" bindtap="onSelectDemonType" data-type="regret">后悔</view>
+      </view>
+      <view class="demon-popup-actions">
+        <view class="action-button cancel" bindtap="onCloseDemonPopup">
+          <image class="button-bg" src="/images/button-bg-cancel.png" />
+          <text class="button-text">取消</text>
+        </view>
+        <view class="action-button confirm" bindtap="onStartDemon">
+          <image class="button-bg" src="/images/button-bg-confirm.png" />
+          <text class="button-text">开始</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 未配置功法弹窗 -->
+<view class="demon-popup-mask" wx:if="{{showNoGongfaPopup}}" bindtap="onCloseNoGongfaPopup">
+  <view class="dialog-container" catchtap="preventTouchMove">
+    <image class="dialog-bg" src="/images/dialog-bg.png" mode="stretchFix" />
+    <view class="dialog-content">
+      <view class="demon-popup-title">选择修炼的心魔</view>
+      <view class="demon-popup-hint">
+        你还没有设置心魔修炼功法，请
+        <text class="link-text" catchtap="onGoGongfa">前往心修功法阁</text>
+        添加
+      </view>
+      <view class="demon-popup-actions">
+        <view class="action-button cancel" bindtap="onCloseNoGongfaPopup">
+          <image class="button-bg" src="/images/button-bg-cancel.png" />
+          <text class="button-text">取消</text>
+        </view>
+        <view class="action-button confirm" bindtap="onGoGongfa">
+          <image class="button-bg" src="/images/button-bg-confirm.png" />
+          <text class="button-text">开始</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 完成修炼确认弹窗 -->
+<view class="demon-popup-mask" wx:if="{{showCompleteConfirmPopup}}" bindtap="onCloseCompleteConfirmPopup">
+  <view class="dialog-container" catchtap="preventTouchMove">
+    <image class="dialog-bg" src="/images/dialog-bg.png" mode="stretchFix" />
+    <view class="dialog-content">
+      <view class="demon-popup-title">确认完成修炼？</view>
+      <view class="demon-popup-actions">
+        <view class="action-button cancel" bindtap="onCloseCompleteConfirmPopup">
+          <image class="button-bg" src="/images/button-bg-cancel.png" />
+          <text class="button-text">取消</text>
+        </view>
+        <view class="action-button confirm" bindtap="onConfirmComplete">
+          <image class="button-bg" src="/images/button-bg-confirm.png" />
+          <text class="button-text">确认</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 修炼结算弹窗 -->
+<practice-result
+  show="{{showSettlement}}"
+  exp="{{settlementInfo.exp}}"
+  categoryName="{{settlementInfo.categoryName}}"
+  attrChanges="{{settlementInfo.attrChanges}}"
+  bind:close="onCloseSettlement"
+/>
+
+<!-- 升级/突破弹窗 -->
+<level-up-modal
+  show="{{showLevelUp}}"
+  oldLevel="{{levelUpInfo.oldLevel}}"
+  newLevel="{{levelUpInfo.newLevel}}"
+  bind:close="onCloseLevelUp"
+/>
+
 <!-- 3. 底部输入区 -->
-<view class="footer-wrapper" style="padding-bottom: {{keyboardHeight > 0 ? keyboardHeight : (isIphoneX ? 34 : 20)}}px;">
+<view class="footer-wrapper" style="padding-bottom: {{keyboardHeight > 0 ? keyboardHeight : (isIphoneX ? 34 : 60)}}px;">
   <view class="footer-input-box">
     <input 
       class="input-field font-system"

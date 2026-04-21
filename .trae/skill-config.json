@@ -1,0 +1,8 @@
+{
+  "disabledSkills": [
+    "提示词 上下文构建prompt-context-build",
+    "流式输出过滤ai-streaming-filter",
+    "daily-task今日宜练",
+    "微信小程序 tabbar 页面跳转wxapp-tabbar-nav"
+  ]
+}
