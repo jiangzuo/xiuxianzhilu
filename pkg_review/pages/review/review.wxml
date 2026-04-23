@@ -1,0 +1,52 @@
+<!-- pkg_review/pages/review/review.wxml -->
+<view class="page-container">
+  <!-- 背景图 -->
+  <image class="review-bg" src="/images/practice-review.png" mode="aspectFill" />
+  
+  <!-- 1. 顶部固定区 - 导航栏 -->
+  <view class="custom-nav" style="padding-top: {{statusBarHeight}}px;">
+    <view class="nav-left" bindtap="goBack">
+      <van-icon name="arrow-left" size="20px" color="#555" />
+    </view>
+    <text class="nav-center">修炼回顾</text>
+    <view class="nav-right"></view>
+  </view>
+
+  <!-- 2. 中间滚动区 -->
+  <scroll-view class="scroll-container" scroll-y bindscrolltolower="onReachBottom">
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{records.length === 0 && !loading}}">
+      <text class="empty-text">尚无修炼记录，灵气稀薄...</text>
+    </view>
+
+    <!-- 记录列表 -->
+    <view class="record-list" wx:if="{{records.length > 0}}">
+      <block wx:for="{{records}}" wx:key="timestamp">
+        <!-- 修炼记录 -->
+        <view class="record-item practice" wx:if="{{item.type === 'practice'}}">
+          <text class="record-text">{{item.formattedDate}}，你完成了一次【{{item.action}}】的修炼</text>
+        </view>
+
+        <!-- 突破记录 -->
+        <view class="record-item levelup" wx:elif="{{item.type === 'levelup'}}">
+          <text class="record-text">{{item.formattedDate}}，你的境界突破至{{item.newLevelName}}</text>
+        </view>
+
+        <!-- AI 回顾 -->
+        <view class="record-item ai-review" wx:elif="{{item.type === 'ai_review'}}">
+          <text class="record-text">小周天回顾：{{item.content}}</text>
+        </view>
+      </block>
+    </view>
+
+    <!-- 加载更多 -->
+    <view class="loading-more" wx:if="{{loading}}">
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <!-- 没有更多 -->
+    <view class="no-more" wx:if="{{!hasMore && records.length > 0}}">
+      <text class="no-more-text">— 已显示全部 —</text>
+    </view>
+  </scroll-view>
+</view>

@@ -60,13 +60,24 @@ Page({
       statusBarHeight: systemInfo.statusBarHeight
     });
 
+    // 优先从 URL 参数获取
     let targetGongfaId = options.gongfaId;
     let targetGongfaName = options.gongfaName;
 
+    // 如果没有 URL 参数，从 globalData 获取（从 chat 页面跳转过来）
     if (!targetGongfaId && app.globalData.dailyTaskTarget) {
       targetGongfaId = app.globalData.dailyTaskTarget.gongfaId;
       targetGongfaName = app.globalData.dailyTaskTarget.gongfaName;
       app.globalData.dailyTaskTarget = null;
+    }
+
+    // 如果仍然没有，从缓存读取今日宜练状态
+    if (!targetGongfaId) {
+      const dailyTaskStatus = DailyTaskService.getDailyTaskStatus();
+      if (dailyTaskStatus.exists && !dailyTaskStatus.completed) {
+        targetGongfaId = dailyTaskStatus.gongfaId;
+        targetGongfaName = dailyTaskStatus.gongfaName;
+      }
     }
 
     if (targetGongfaId) {
@@ -104,8 +115,39 @@ Page({
     if (typeof this.getTabBar === 'function' && this.getTabBar()) {
       this.getTabBar().updateSelected('/pages/practice/practice');
     }
-    // 【核心修改】只负责刷新数据，不负责计算
+    // 刷新页面数据
     this.refreshData();
+    // 检查今日宜练状态是否过期
+    this.checkDailyTaskStatus();
+  },
+
+  /**
+   * 检查今日宜练状态
+   * 1. 如果已过期（第二天），重置状态
+   * 2. 如果已完成，保持显示但不能再次修炼
+   */
+  checkDailyTaskStatus() {
+    const dailyTaskStatus = DailyTaskService.getDailyTaskStatus();
+    
+    if (!dailyTaskStatus.exists || dailyTaskStatus.completed) {
+      // 今日宜练不存在或已完成，重置状态
+      this.setData({
+        isDailyTask: false,
+        targetGongfaId: ''
+      });
+    } else if (dailyTaskStatus.exists && !dailyTaskStatus.completed) {
+      // 今日宜练存在且未完成，检查是否需要更新 targetGongfaId
+      if (!this.data.targetGongfaId) {
+        const category = DailyTaskService.getCategoryByGongfaId(dailyTaskStatus.gongfaId);
+        if (category) {
+          this.setData({
+            activeTab: category,
+            isDailyTask: true,
+            targetGongfaId: dailyTaskStatus.gongfaId
+          });
+        }
+      }
+    }
   },
 
   /**

@@ -1,6 +1,7 @@
 // pages/profile/profile.js
 const app = getApp();
 const practiceService = require('../../services/practice.service');
+const ReviewService = require('../../services/review.service');
 const ImportExportService = require('../../services/import-export.service');
 const { QUOTES_LIBRARY } = require('../../utils/level-data.js');
 const GREETINGS = require('../../utils/greetings.js');
@@ -62,6 +63,8 @@ Page({
     this.refreshData();
     this.updateDailyQuote();
     this.startSpiritMessageLoop();
+    // 检查并生成每周 AI 回顾
+    ReviewService.checkAndGenerateWeeklyReview();
   },
 
   refreshData() {
@@ -127,7 +130,12 @@ Page({
   },
 
   navigateToReview() {
-    wx.showToast({ title: '功能开发中~', icon: 'none' });
+    wx.navigateTo({
+      url: '/pkg_review/pages/review/review',
+      fail: (err) => {
+        console.error('跳转失败，请检查 app.json 是否配置了页面', err);
+      }
+    });
   },
 
   // --- 导入导出相关方法 ---

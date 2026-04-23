@@ -27,6 +27,9 @@ const CacheManager = {
         difficulties: [], 
         summary: "暂无前情提要。"
       };
+
+      // 初始化今日宜练
+      _memCache.dailyTask = wx.getStorageSync('dailyTask') || null;
     } catch (e) {
       console.error('【Cache】初始化失败', e);
     }

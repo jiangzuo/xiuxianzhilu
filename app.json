@@ -41,6 +41,12 @@
       "root": "pkg_assets",
       "name": "assets",
       "pages": []
+    },
+    {
+      "root": "pkg_review",
+      "pages": [
+        "pages/review/review"
+      ]
     }
   ],
   "lazyCodeLoading": "requiredComponents",

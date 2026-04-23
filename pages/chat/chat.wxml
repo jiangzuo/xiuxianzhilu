@@ -21,6 +21,7 @@
     scroll-y 
     scroll-into-view="{{scrollToViewId}}"
     scroll-with-animation="{{true}}"
+    bindscrolltoupper="onScrollToUpper"
     bindtap="hideKeyboard"
   >
     <view class="padding-top"></view>
@@ -28,6 +29,12 @@
     <block wx:for="{{msgList}}" wx:key="id">
       <!-- 时间戳 -->
       <view class="time-stamp" wx:if="{{item.showTime}}">{{item.timeStr}}</view>
+
+      <!-- 加载历史消息提示 -->
+      <view class="loading-history" wx:if="{{index === 0 && hasMoreHistory}}">
+        <text wx:if="{{isLoadingHistory}}">加载中...</text>
+        <text wx:else>上拉加载更多</text>
+      </view>
 
       <!-- 消息行 -->
       <view class="msg-row {{item.role === 'user' ? 'row-user' : 'row-ai'}}" id="msg-{{index}}">

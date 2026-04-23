@@ -21,6 +21,13 @@ Page({
     isFocus: false,
     isResponding: false,
 
+    // 分页相关
+    loadedCount: 0,
+    pageSize: 20,
+    hasMoreHistory: true,
+    isLoadingHistory: false,
+    earliestTimestamp: 0,  // 当前加载的最早消息时间戳
+
     dailyTask: {
       exists: false,
       completed: false,
@@ -75,23 +82,87 @@ Page({
 
   // --- 加载历史 ---
   initHistory() {
-    const history = ChatService.getHistory(50);
+    const history = ChatService.getHistory(this.data.pageSize);
     const visibleHistory = history.filter(msg => msg.role !== 'system');
-    const displayList = visibleHistory.slice(-20);
+    
+    // 初始加载最近的消息（最新的在最后）
+    const displayList = visibleHistory;
+    const totalCount = ChatService.getHistory(0).filter(msg => msg.role !== 'system').length;
+    
+    this.formatMessageList(displayList);
+    
+    // 记录当前加载的最早消息时间戳
+    const earliestTimestamp = displayList.length > 0 ? displayList[0].timestamp : 0;
+    
+    this.setData({
+      msgList: displayList,
+      loadedCount: displayList.length,
+      hasMoreHistory: displayList.length < totalCount,
+      earliestTimestamp: earliestTimestamp
+    });
+    
+    setTimeout(() => {
+      this.scrollToBottom();
+    }, 200);
+  },
 
-    displayList.forEach(msg => {
-      // 容错：防止旧数据没有 timestamp 导致报错
+  // 加载更多历史消息
+  loadMoreHistory() {
+    if (this.data.isLoadingHistory || !this.data.hasMoreHistory) return;
+    
+    this.setData({ isLoadingHistory: true });
+    
+    // 获取所有历史消息
+    const allHistory = ChatService.getHistory(0).filter(msg => msg.role !== 'system');
+    const pageSize = this.data.pageSize;
+    
+    // 找到 earliestTimestamp 之前的消息
+    let earlierMessages = allHistory.filter(msg => msg.timestamp < this.data.earliestTimestamp);
+    
+    // 取最新的 pageSize 条
+    earlierMessages = earlierMessages.slice(-pageSize);
+    
+    if (earlierMessages.length > 0) {
+      this.formatMessageList(earlierMessages);
+      
+      // 往列表前面追加（因为是更早的消息）
+      const newList = [...earlierMessages, ...this.data.msgList];
+      
+      // 更新最早时间戳
+      const newEarliestTimestamp = earlierMessages[0].timestamp;
+      
+      // 检查是否还有更多
+      const remainingMessages = allHistory.filter(msg => msg.timestamp < newEarliestTimestamp);
+      const hasMore = remainingMessages.length > 0;
+      
+      this.setData({
+        msgList: newList,
+        loadedCount: this.data.loadedCount + earlierMessages.length,
+        hasMoreHistory: hasMore,
+        earliestTimestamp: newEarliestTimestamp,
+        isLoadingHistory: false
+      });
+    } else {
+      this.setData({
+        hasMoreHistory: false,
+        isLoadingHistory: false
+      });
+    }
+  },
+
+  // 滚动到顶部事件
+  onScrollToUpper() {
+    this.loadMoreHistory();
+  },
+
+  // 格式化消息列表
+  formatMessageList(list) {
+    list.forEach(msg => {
       const ts = msg.timestamp || Date.now();
       const d = new Date(ts);
       msg.timeStr = `${d.getHours()}:${d.getMinutes().toString().padStart(2,'0')}`;
       msg.showTime = true; 
     });
-    
-    this.setData({ msgList: displayList });
-    
-    setTimeout(() => {
-      this.scrollToBottom();
-    }, 200);
   },
 
   // --- 交互逻辑 ---

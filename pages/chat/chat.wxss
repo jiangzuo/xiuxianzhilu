@@ -338,6 +338,14 @@ page {
   font-weight: bold;
 }
 
+/* 加载历史消息 */
+.loading-history {
+  text-align: center;
+  font-size: 24rpx;
+  color: #999;
+  padding: 20rpx 0;
+}
+
 /* =========================== */
 /* 4. 底部输入栏 (Footer) */
 /* =========================== */

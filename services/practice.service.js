@@ -1,6 +1,7 @@
 // services/practice.service.js 修为属性计算逻辑
 const Cache = require('../utils/cache-manager');
 const { LEVEL_SYSTEM } = require('../utils/level-data');
+const ReviewService = require('./review.service');
 // 注意：这里不引入 ChatService 避免循环引用，只负责写 Storage
 
 const uuid = () => {
@@ -104,6 +105,11 @@ const practiceService = {
     const newLevelInfo = this.getCurrentLevelInfo();
     const isLevelUp = newLevelInfo.level > oldLevelInfo.level;
 
+    // 4.1 如果境界升级，写入突破记录
+    if (isLevelUp) {
+      ReviewService.addLevelUpRecord(oldLevelInfo.levelName, newLevelInfo.levelName);
+    }
+
     // 5. 计算属性变化
     const attrChanges = this._calculateAttrChanges(category, finalExp);
 
@@ -156,13 +162,15 @@ const practiceService = {
     
     const newLog = {
       timestamp: now.getTime(),
+      type: 'practice',
       action: actionName,
-      type: type,
+      category: type,
       exp: exp
     };
 
     logs.unshift(newLog);
-    if (logs.length > 50) logs = logs.slice(0, 50); // 只保留最近50条
+    // 保留最近 2000 条记录（与修炼回顾模块一致）
+    if (logs.length > 2000) logs = logs.slice(0, 2000);
     wx.setStorageSync('practice_logs', logs);
   },
 

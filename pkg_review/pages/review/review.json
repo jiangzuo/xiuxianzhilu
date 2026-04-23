@@ -1,0 +1,7 @@
+{
+  "navigationStyle": "custom",
+  "navigationBarTitleText": "修炼回顾",
+  "usingComponents": {
+    "van-icon": "@vant/weapp/icon/index"
+  }
+}
