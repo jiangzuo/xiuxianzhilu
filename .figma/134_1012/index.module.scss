@@ -1,0 +1,101 @@
+* {
+  box-sizing: border-box;
+}
+
+.frame {
+  display: flex;
+  align-items: flex-start;
+  background: #00000000;
+  padding-top: 7px;
+  padding-left: 1px;
+  width: 332px;
+  height: 304px;
+  overflow: hidden;
+
+  .fed807Be9D5A42FeAb9E {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    align-items: flex-start;
+    padding: 52px 32px 66px 37px;
+    background-image: url(../image/mo1flt2k-f77mi9h.png);
+    background-position: -287px -230px;
+    background-size: 273.7% 248.26%;
+    background-repeat: no-repeat;
+
+    .text {
+      width: 262px;
+      text-align: center;
+      line-height: 22px;
+      letter-spacing: 0;
+      color: #000000;
+      font-family: LiSu, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", SimHei, Arial, Helvetica, sans-serif;
+      font-size: 14px;
+    }
+
+    .text4 {
+      margin: 27px 0px 0px 39px;
+      width: 183px;
+      text-align: center;
+      line-height: 22px;
+      letter-spacing: 0;
+      color: #000000;
+      font-family: LiSu, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", SimHei, Arial, Helvetica, sans-serif;
+      font-size: 14px;
+
+      .text2 {
+        line-height: 22px;
+        letter-spacing: 0;
+        color: #000000;
+        font-family: LiSu, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", SimHei, Arial, Helvetica, sans-serif;
+        font-size: 14px;
+      }
+
+      .text3 {
+        line-height: 22px;
+        letter-spacing: 0;
+        color: #3051be;
+        font-family: LiSu, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", SimHei, Arial, Helvetica, sans-serif;
+        font-size: 14px;
+      }
+    }
+
+    .autoWrapper {
+      display: flex;
+      align-items: center;
+      align-self: stretch;
+      justify-content: space-between;
+      margin-top: 49px;
+      padding-right: 31px;
+      padding-left: 39px;
+
+      .text5 {
+        line-height: 22px;
+        letter-spacing: 0;
+        color: #ffffff;
+        font-family: LiSu, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", SimHei, Arial, Helvetica, sans-serif;
+        font-size: 14px;
+      }
+
+      .a8Df5164F394149E0936 {
+        display: flex;
+        align-items: center;
+        padding: 7px 25px 8px 27px;
+        background-image: url(../image/mo1flt2k-41pwd6g.png);
+        background-position: 0px 1px;
+        background-size: 98.75% 102.86%;
+        background-repeat: no-repeat;
+      }
+
+      .a8Be98360E3474AdeB46 {
+        display: flex;
+        align-items: flex-start;
+        padding: 10px 23px 12px 26px;
+        background-image: url(../image/mo1flt2k-uedgvlz.png);
+        background-position: -5px 0px;
+        background-size: 112.41% 100%;
+        background-repeat: no-repeat;
+      }
+    }
+  }
+}

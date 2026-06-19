@@ -1,0 +1,139 @@
+.settlement-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 900;
+}
+
+.settlement-mask .dialog-container {
+  width: 80%;
+  max-width: 600rpx;
+  position: relative;
+  font-family: 'LishuFont', sans-serif;
+  animation: popIn 0.3s ease-out;
+}
+
+.settlement-mask .dialog-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  border-radius: 12rpx;
+}
+
+.settlement-mask .dialog-content {
+  position: relative;
+  z-index: 2;
+  padding: 48rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.settle-title {
+  font-size: 34rpx;
+  color: #3a3a3a;
+  margin-top: 10rpx;
+  font-weight: 500;
+}
+
+.highlight-num {
+  font-size: 32rpx;
+  color: #a94442;
+  font-weight: bold;
+  margin: 0 6rpx;
+}
+
+.settle-subtitle {
+  font-size: 34rpx;
+  color: #3a3a3a;
+  margin-bottom: 22rpx;
+  font-weight: 500;
+}
+
+.settle-attrs {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 40rpx;
+  margin-top: 10rpx;
+  margin-bottom: 30rpx;
+}
+
+.attr-change-item {
+  display: flex;
+  align-items: center;
+  font-size: 30rpx;
+  color: #3a3a3a;
+}
+
+.attr-label {
+  color: #555;
+}
+
+.attr-val {
+  font-family: sans-serif;
+  margin-left: 8rpx;
+  font-weight: bold;
+}
+
+.attr-arrow {
+  color: #d81e06;
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-left: 8rpx;
+  animation: floatUp 1s infinite;
+}
+
+@keyframes floatUp {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6rpx); }
+}
+
+.settlement-mask .dialog-actions {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.settlement-mask .action-button {
+  position: relative;
+  width: 240rpx;
+  height: 80rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.settlement-mask .button-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.settlement-mask .button-text {
+  position: relative;
+  z-index: 2;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 500;
+  letter-spacing: 2rpx;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

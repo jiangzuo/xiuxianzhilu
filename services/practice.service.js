@@ -1,0 +1,228 @@
+// services/practice.service.js 修为属性计算逻辑
+const Cache = require('../utils/cache-manager');
+const { LEVEL_SYSTEM } = require('../utils/level-data');
+const ReviewService = require('./review.service');
+// 【P2 新增】引入事件总线：doPractice 完成后 emit 'practice.completed'
+// 让上游业务（今日宜练、未来签到/成就/埋点）通过订阅方式联动，零侵入解耦
+const EventBus = require('../utils/event-bus');
+// 注意：这里不引入 ChatService 避免循环引用，只负责写 Storage
+
+const uuid = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
+    return v.toString(16);
+  });
+};
+
+// 注释 修为属性计算逻辑
+const practiceService = {
+  // ... (getpracticeData, calculateCategoryExp, calculateAttributes 保持不变) ...
+  getpracticeData() {
+    let data = Cache.get('userpractices');
+    if (!data || typeof data !== 'object') {
+      data = { body: [], mind: [], skill: [], wealth: [] };
+      // 初始化默认功法
+      data.body.push({ id: uuid(), name: '散步 30分钟', exp: 5, count: 0, totalExpEarned: 0 });
+      Cache.set('userpractices', data);
+    }
+    // 容错
+    ['body', 'mind', 'skill', 'wealth'].forEach(k => { if(!data[k]) data[k] = []; });
+    return data;
+  },
+
+  calculateCategoryExp(list) {
+    if (!list) return 0;
+    return list.reduce((sum, item) => sum + (item.totalExpEarned || 0), 0);
+  },
+
+  calculateAttributes() {
+    const data = this.getpracticeData();
+    const bodyExp = this.calculateCategoryExp(data.body);
+    const mindExp = this.calculateCategoryExp(data.mind);
+    const skillExp = this.calculateCategoryExp(data.skill);
+    const wealthExp = this.calculateCategoryExp(data.wealth);
+    return {
+      shouYuan: (80 + (bodyExp / 1000) + (mindExp / 1000)).toFixed(2),
+      tiZhi: (50 + (bodyExp / 500)).toFixed(2),
+      xinJing: (50 + (mindExp / 500)).toFixed(2),
+      zhiHui: (50 + (skillExp / 500)).toFixed(2),
+      caiFu: (50 + (wealthExp / 500)).toFixed(2),
+      totalExp: bodyExp + mindExp + skillExp + wealthExp
+    };
+  },
+
+  getCurrentLevelInfo() {
+    const { totalExp } = this.calculateAttributes();
+    let accumulatedExp = 0;
+    for (let i = 0; i < LEVEL_SYSTEM.length; i++) {
+      const level = LEVEL_SYSTEM[i];
+      if (level.expToNext === Infinity) {
+        return { ...level, levelName: level.name, currentExp: 0, expPercentage: '100%' };
+      }
+      if (totalExp < accumulatedExp + level.expToNext) {
+        const currentExp = totalExp - accumulatedExp;
+        const percentage = Math.min((currentExp / level.expToNext) * 100, 100).toFixed(1);
+        return {
+          ...level,
+          levelName: level.name,
+          currentExp,
+          expPercentage: percentage + '%'
+        };
+      }
+      accumulatedExp += level.expToNext;
+    }
+    const max = LEVEL_SYSTEM[LEVEL_SYSTEM.length - 1];
+    return { ...max, levelName: max.name, expPercentage: '100%' };
+  },
+
+  // --- 【新增】获取最近修炼日志 ---
+  getRecentLogs(limit = 10) {
+    const logs = wx.getStorageSync('practice_logs') || [];
+    return logs.slice(0, limit);
+  },
+
+  // --- 【P2 新增】获取最近 N 天内的修炼日志（带 limit 上限）---
+  // 用于 AI 提示词的"近期机缘"，避免全量历史撑爆上下文
+  // @param {number} days - 时间窗口（天），如 7 表示最近 7 天
+  // @param {number} limit - 最多返回条数（兜底，防止用户一天练 100 次撑爆 prompt）
+  getRecentLogsInDays(days = 7, limit = 30) {
+    const logs = wx.getStorageSync('practice_logs') || [];
+    // 起点：今天 0 点往前推 (days - 1) 天，0 点对齐（这样"7 天"含今天共 7 个日历日）
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const cutoff = startOfToday.getTime() - (days - 1) * 86400000;
+    return logs
+      .filter(l => l.timestamp >= cutoff)
+      .slice(0, limit);
+  },
+
+  // --- 【核心】执行修炼 ---
+  doPractice(gongfaId, category, expGain = null) {
+    const data = this.getpracticeData();
+    const list = data[category];
+    const index = list.findIndex(item => item.id === gongfaId);
+
+    if (index === -1) return { success: false, msg: '功法不存在' };
+
+    const item = list[index];
+    const finalExp = expGain !== null ? expGain : item.exp;
+
+    // 1. 记录修炼前的境界快照
+    const oldLevelInfo = this.getCurrentLevelInfo();
+
+    // 2. 更新数据
+    item.count = (item.count || 0) + 1;
+    item.totalExpEarned = (item.totalExpEarned || 0) + finalExp;
+    data[category][index] = item;
+    Cache.set('userpractices', data);
+
+    // 3. 写入详细日志
+    this._addLog(item.name, category, finalExp);
+
+    // 4. 计算修炼后的境界快照（自动重新计算）
+    const newLevelInfo = this.getCurrentLevelInfo();
+    const isLevelUp = newLevelInfo.level > oldLevelInfo.level;
+
+    // 4.1 如果境界升级，写入突破记录
+    if (isLevelUp) {
+      ReviewService.addLevelUpRecord(oldLevelInfo.levelName, newLevelInfo.levelName);
+    }
+
+    // 5. 计算属性变化
+    const attrChanges = this._calculateAttrChanges(category, finalExp);
+
+    // 6. 【P2 新增】emit 'practice.completed' 事件
+    //    触发时机：功法找到、log 已写入、属性已计算、境界已更新之后
+    //    这样任何订阅者读 practice_logs / userpractices 都能拿到最新数据
+    //    失败路径（index === -1）不会 emit
+    EventBus.emit('practice.completed', {
+      gongfaId: gongfaId,
+      gongfaName: item.name,
+      category: category,
+      exp: finalExp,
+      timestamp: Date.now()
+    });
+
+    return {
+      success: true,
+      addedExp: finalExp,
+      gongfaName: item.name,
+      newCount: item.count,
+      isLevelUp: isLevelUp,
+      oldLevel: oldLevelInfo,
+      newLevel: newLevelInfo,
+      settlement: {
+        exp: finalExp,
+        categoryName: this._getCategoryName(category),
+        attrChanges: attrChanges
+      }
+    };
+  },
+
+  _calculateAttrChanges(category, exp) {
+    const changes = [];
+    const attrIncrement = parseFloat((exp / 500).toFixed(3));
+    const lifeIncrement = parseFloat((exp / 1000).toFixed(3));
+
+    if (category === 'body') {
+      changes.push({ label: '寿元', val: lifeIncrement });
+      changes.push({ label: '体质', val: attrIncrement });
+    } else if (category === 'mind') {
+      changes.push({ label: '寿元', val: lifeIncrement });
+      changes.push({ label: '心境', val: attrIncrement });
+    } else if (category === 'skill') {
+      changes.push({ label: '智慧', val: attrIncrement });
+    } else if (category === 'wealth') {
+      changes.push({ label: '财富', val: attrIncrement });
+    }
+    return changes;
+  },
+
+  _getCategoryName(category) {
+    const map = { body: '炼体', mind: '炼心', skill: '技法', wealth: '财运' };
+    return map[category] || category;
+  },
+
+  /**
+   * 内部方法：添加日志
+   */
+  _addLog(actionName, type, exp) {
+    let logs = wx.getStorageSync('practice_logs') || [];
+    const now = new Date();
+    
+    const newLog = {
+      timestamp: now.getTime(),
+      type: 'practice',
+      action: actionName,
+      category: type,
+      exp: exp
+    };
+
+    logs.unshift(newLog);
+    // 保留最近 2000 条记录（与修炼回顾模块一致）
+    if (logs.length > 2000) logs = logs.slice(0, 2000);
+    wx.setStorageSync('practice_logs', logs);
+  },
+
+  /**
+   * 检查用户是否配置了心魔修炼功法
+   * @returns {Object} { hasFear: boolean, hasRegret: boolean, hasAny: boolean }
+   */
+  hasHeartDemonGongfa() {
+    const data = this.getpracticeData();
+    const mindList = data.mind || [];
+    
+    // 心魔修炼功法的标识：key 字段匹配，且未归档
+    const activeList = mindList.filter(item => item.status !== 'archived');
+    const fearGongfa = activeList.find(item => item.key === 'heart-demon-fear');
+    const regretGongfa = activeList.find(item => item.key === 'heart-demon-regret');
+    
+    return {
+      hasFear: !!fearGongfa,
+      hasRegret: !!regretGongfa,
+      hasAny: !!(fearGongfa || regretGongfa)
+    };
+  }
+};
+
+module.exports = practiceService;

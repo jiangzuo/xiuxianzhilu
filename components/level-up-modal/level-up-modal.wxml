@@ -1,0 +1,19 @@
+<view class="level-up-mask" wx:if="{{ show }}" bindtap="onClose">
+  <image class="level-up-bg" src="/images/level-up-bg.png" mode="widthFix" />
+  
+  <view class="level-up-content" animation="{{ animationData }}">
+    <view class="level-up-orb-wrapper">
+      <image class="level-up-orb-bg" src="/images/level-up-orb.png" />
+      <view class="level-up-orb-text">
+        <view class="level-text">{{ newLevel.levelName || '' }}</view>
+      </view>
+    </view>
+    
+    <view class="level-up-desc">{{ newLevel.description || '你的修为有了新的精进，对大道的理解更深了一层。' }}</view>
+    
+    <view class="level-up-confirm" catchtap="onClose">
+      <image class="confirm-button-bg" src="/images/button-bg-confirm.png" />
+      <text class="confirm-button-text">确认</text>
+    </view>
+  </view>
+</view>

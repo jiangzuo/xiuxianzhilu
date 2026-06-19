@@ -1,0 +1,31 @@
+<view class="settlement-mask" wx:if="{{ show }}" catch:touchmove="true">
+  <view class="dialog-container">
+    <image class="dialog-bg" src="/images/dialog-bg.png" mode="scaleToFill" />
+    
+    <view class="dialog-content">
+      <view class="settle-title">
+        恭喜！获得 <text class="highlight-num">{{ exp }}</text> 点修为
+      </view>
+      <view class="settle-subtitle">
+        对{{ categoryName }}的领悟有所提升
+      </view>
+
+      <view class="settle-attrs">
+        <block wx:for="{{ attrChanges }}" wx:key="label">
+          <view class="attr-change-item">
+            <text class="attr-label">{{ item.label }}：</text>
+            <text class="attr-val">{{ item.val }}</text>
+            <text class="attr-arrow">↑</text>
+          </view>
+        </block>
+      </view>
+
+      <view class="dialog-actions">
+        <view class="action-button confirm" bindtap="onClose">
+          <image class="button-bg" src="/images/button-bg-confirm.png" />
+          <text class="button-text">确认</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

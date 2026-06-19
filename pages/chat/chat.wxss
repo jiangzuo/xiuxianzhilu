@@ -1,0 +1,408 @@
+/* pages/chat/chat.wxss */
+
+/* =========================== */
+/* 1. 页面布局框架 (参考 Journal) */
+/* =========================== */
+page {
+  background-color: #ECE9DD;
+  height: 100vh;
+  overflow: hidden; /* 禁止整页滚动 */
+}
+
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+}
+
+/* =========================== */
+/* 2. 顶部导航栏 (Fixed Height) */
+/* =========================== */
+.custom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px; /* 标准导航栏高度 */
+  padding: 0 32rpx;
+  flex-shrink: 0; /* 禁止被压缩 */
+  background-color: #ECE9DD;
+  z-index: 100;
+  box-shadow: 0 1rpx 0 rgba(0,0,0,0.05);
+}
+
+.nav-left, .nav-right {
+  width: 100rpx;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.nav-right {
+  justify-content: flex-end;
+}
+
+.daily-task-fixed {
+  position: absolute;
+  bottom: 20rpx;
+  left: 32rpx;
+  z-index: 100;
+  display: flex;
+  gap: 16rpx;
+}
+
+.daily-task-btn {
+  font-size: 24rpx;
+  color: #c0a36a;
+  padding: 8rpx 24rpx;
+  border: 1rpx solid #c0a36a;
+  border-radius: 24rpx;
+  background: #fff;
+  white-space: nowrap;
+}
+
+.complete-btn {
+  background: #c0a36a;
+  color: #fff;
+}
+
+.demon-popup-mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-container {
+  position: relative;
+  width: 560rpx;
+  min-height: 300rpx;
+}
+
+.dialog-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.dialog-content {
+  position: relative;
+  z-index: 2;
+  padding: 64rpx 48rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.demon-popup-title {
+  font-size: 32rpx;
+  text-align: center;
+  margin-bottom: 32rpx;
+  color: #3a3a3a;
+  font-weight: 500;
+}
+
+.demon-types {
+  display: flex;
+  justify-content: center;
+  gap: 32rpx;
+  margin-bottom: 40rpx;
+}
+
+.demon-type {
+  padding: 12rpx 32rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  color: #fff;
+}
+
+.demon-type.fear {
+  background: #BF8171;
+}
+
+.demon-type.regret {
+  background: #505C7B;
+}
+
+.demon-type.selected {
+  box-shadow: 0 0 0 4rpx #EA1B1E;
+}
+
+.demon-popup-hint {
+  font-size: 26rpx;
+  color: #666;
+  text-align: center;
+  margin-bottom: 32rpx;
+  padding: 0 32rpx;
+}
+
+.link-text {
+  color: #3051be;
+}
+
+.demon-popup-actions {
+  display: flex;
+  justify-content: center;
+  gap: 32rpx;
+  margin-top: 20rpx;
+}
+
+.action-button {
+  position: relative;
+  width: 180rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-button .button-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.action-button .button-text {
+  position: relative;
+  z-index: 2;
+  font-size: 28rpx;
+  font-weight: 500;
+}
+
+.action-button.cancel .button-text {
+  color: #fff;
+}
+
+.action-button.confirm .button-text {
+  color: #fff;
+}
+
+.daily-task-action {
+  padding: 24rpx 32rpx;
+}
+
+.daily-task-recommend {
+  background-color: #fff;
+  padding: 24rpx;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  line-height: 1.6;
+  margin-bottom: 16rpx;
+}
+
+.daily-task-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 24rpx;
+  margin-top: 16rpx;
+}
+
+.task-btn {
+  padding: 16rpx 48rpx;
+  border-radius: 32rpx;
+  font-size: 28rpx;
+}
+
+.task-btn.primary {
+  background-color: #c0a36a;
+  color: #fff;
+}
+
+.task-btn.secondary {
+  background-color: #f5f5f5;
+  color: #666;
+  border: 1rpx solid #ddd;
+}
+
+/* 左侧靠左 */
+.nav-left { justify-content: flex-start; }
+
+/* 中间标题 */
+.nav-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: 36rpx; /* 标题字号 */
+  color: #3a3a3a;
+  font-weight: 500;
+  letter-spacing: 2rpx;
+}
+.header-avatar {
+  width: 60rpx;
+  height: 60rpx;
+  margin-right: 12rpx; /* 图片和文字的间距 */
+  border-radius: 50%;
+  border: 1rpx solid rgba(192, 163, 106, 0.3); /* 淡金色边框，增加精致感 */
+}
+
+/* 强制隶书工具类 */
+.font-lishu {
+  font-family: 'LishuFont', sans-serif !important;
+}
+
+/* =========================== */
+/* 3. 中间内容区 (Flex Item) */
+/* =========================== */
+.main-content {
+  flex: 1;
+  width: 100%;
+  height: 0;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.chat-scroll {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  padding-bottom: 40rpx;
+}
+
+.padding-top { height: 30rpx; }
+
+/* --- 聊天气泡样式 --- */
+.msg-row {
+  display: flex;
+  width: 100%;
+  padding: 0 24rpx;
+  margin-bottom: 10rpx;
+  box-sizing: border-box;
+}
+
+.bubble {
+  max-width: 80%;
+  padding: 12rpx 20rpx;
+  border-radius: 20rpx;
+  font-size: 28rpx;
+  line-height: 1.6;
+  position: relative;
+  word-break: break-all;
+  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.03);
+}
+
+/* 强制系统字体工具类 */
+.font-system, 
+.font-system text {
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Segoe UI, Arial, Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft Yahei', sans-serif !important;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* 时间戳 */
+.time-stamp {
+  text-align: center;
+  font-size: 22rpx;
+  color: #999;
+  margin-bottom: 24rpx;
+  font-family: -apple-system, sans-serif !important; 
+}
+
+/* 用户气泡 */
+.row-user { justify-content: flex-end; }
+.row-user .bubble {
+  background-color: #c0a36a;
+  color: #fff;
+  border-top-right-radius: 4rpx;
+}
+
+/* AI 气泡 */
+.row-ai { justify-content: flex-start; }
+.row-ai .bubble {
+  background-color: #fff;
+  color: #333;
+  border-top-left-radius: 4rpx;
+}
+
+/* Loading */
+.loading-dots {
+  display: inline-block;
+  margin-left: 8rpx;
+  color: #c0a36a;
+  font-weight: bold;
+}
+
+/* 加载历史消息 */
+.loading-history {
+  text-align: center;
+  font-size: 24rpx;
+  color: #999;
+  padding: 20rpx 0;
+}
+
+/* =========================== */
+/* 4. 底部输入栏 (Footer) */
+/* =========================== */
+.footer-wrapper {
+  padding-top: 0rpx;
+  transition: padding-bottom 0.1s ease-out;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  background-color: #ECE9DD;
+}
+
+.footer-left-action {
+  display: flex;
+  align-items: center;
+  padding-left: 32rpx;
+  padding-bottom: 16rpx;
+}
+
+.footer-input-box {
+  background-color: #fff;
+  border-radius: 40rpx;
+  padding: 18rpx 24rpx;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+  margin: 0 32rpx 20rpx;
+}
+
+.input-field {
+  flex: 1;
+  height: 50rpx;
+  min-height: 50rpx;
+  font-size: 30rpx;
+  margin-right: 16rpx;
+  color: #333;
+}
+
+.send-icon {
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.retry-btn {
+  margin-top: 16rpx;
+  padding: 12rpx 24rpx;
+  background: rgba(212, 175, 55, 0.15);
+  border: 2rpx solid #d4af37;
+  border-radius: 16rpx;
+  color: #d4af37;
+  font-size: 24rpx;
+  display: inline-block;
+  text-align: center;
+}
+
+.retry-btn:active {
+  background: rgba(212, 175, 55, 0.3);
+}

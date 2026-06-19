@@ -1,0 +1,30 @@
+/* custom-tab-bar/index.wxss */
+.tab-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50px; /* 【核心修改】降低高度 */
+  background: #ECE9Da;
+  display: flex;
+  border-top: 1px solid #ECE9Da;
+  padding-bottom: env(safe-area-inset-bottom); /* 适配 iPhoneX 等底部安全区域 */
+  
+}
+
+.tab-bar-item {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 14px; /* 【核心修改】增大字体 */
+  color: #969799;
+  transition: color 0.2s;
+  /* 【核心新增】应用隶书字体 */
+  font-family: 'LishuFont', sans-serif; 
+}
+
+.tab-bar-item.active {
+  color: #4a90e2;
+}

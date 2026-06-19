@@ -1,0 +1,140 @@
+/* pages/journal/list/list.wxss (最终修复版) */
+
+/* --- 1. 页面级样式 --- */
+page {
+  height: 100%;
+  overflow: hidden;
+  background-color: #ECE9DD;
+}
+
+/* --- 2. 页面总容器：Flex 布局 --- */
+.page-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- 3. 顶部固定区 --- */
+.custom-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  padding: 0 32rpx;
+  flex-shrink: 0;
+  background-color: #ECE9DD;
+}
+.nav-left, .nav-right {
+  width: 40rpx;
+  display: flex;
+  align-items: center;
+}
+.nav-center {
+  flex: 1;
+  text-align: center;
+  font-size: 34rpx;
+  font-weight: 500;
+}
+
+/* --- 4. 中间滚动区 --- */
+.scroll-container {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.list-container {
+  padding: 32rpx;
+  padding-bottom: 200rpx; 
+}
+
+/* --- 5. 底部固定按钮 --- */
+.footer-action {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 24rpx 64rpx calc(env(safe-area-inset-bottom) + 32rpx);
+  background: linear-gradient(to top, #ECE9DD, rgba(236, 233, 221, 0));
+  display: flex;
+  justify-content: center;
+  z-index: 10;
+}
+.add-button {
+  width: 400rpx;
+  height: 100rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 32rpx;
+  font-weight: 500;
+  /* 【【【核心修复 ①】】】 移除 background-size，添加 position */
+  position: relative;
+  overflow: hidden;
+}
+
+/* 【【【核心修复 ②】】】 新增背景图和文字的样式 */
+.add-button .button-bg-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+.add-button .button-text {
+  position: relative;
+  z-index: 2;
+  color: #3a3a3a;
+}
+
+/* --- 列表项和空状态样式 (保持不变) --- */
+.journal-item {
+  position: relative;
+  width: 100%;
+  margin-bottom: 36rpx;
+}
+.journal-item-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1; /* 这里用-1是OK的，因为父元素没有其他内容会跑到它下面 */
+}
+.journal-item-content {
+  padding: 32rpx 48rpx;
+  box-sizing: border-box;
+}
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+  padding-bottom: 12rpx;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.item-date {
+  font-size: 24rpx;
+  color: #888;
+}
+.item-mood-icon {
+  font-size: 36rpx;
+}
+.item-body {
+  font-size: 28rpx;
+  color: #3a3a3a;
+  line-height: 1.8;
+  overflow: visible;
+  text-overflow: clip;
+  display: block;
+  font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Segoe UI, Arial, Roboto, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft Yahei', sans-serif !important;
+}
+.empty-container {
+  text-align: center;
+  padding-top: 200rpx;
+}
+.empty-text {
+  font-size: 28rpx;
+  color: #999;
+}

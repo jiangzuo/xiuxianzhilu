@@ -1,0 +1,92 @@
+<!-- pages/practice/practice.wxml (最终大头部固定版) -->
+
+<wxs src="/utils/formatter.wxs" module="formatter" />
+<van-notify id="van-notify" top="{{ notifyTop }}" />
+
+<view class="page-wrapper {{ pageClass }}">
+  <!-- 1. “大头部”容器 -->
+  <view class="header-container">
+    <view class="custom-nav" style="padding-top: {{ statusBarHeight }}px;">
+      <view class="nav-title">修炼场</view>
+    </view>
+    
+    <!-- 我们将完整的 van-tabs 结构（包含空的 van-tab）放在头部，用于生成导航栏 -->
+    <van-tabs 
+      active="{{ activeTab }}" 
+      bind:change="onTabChange" 
+      custom-class="header-tabs"
+      nav-class="practice-tabs-nav"
+      tab-class="practice-tab"
+      tab-active-class="practice-tab-active"
+    >
+      <!-- 这个循环的唯一目的，就是告诉 van-tabs 需要渲染哪些导航标签 -->
+      <block wx:for="{{ userpractices }}" wx:for-index="key" wx:key="key">
+        <van-tab title="{{ categoryMap[key] }}" name="{{ key }}"></van-tab>
+      </block>
+    </van-tabs>
+  </view>
+
+  <!-- 2. “滚动区”容器 -->
+  <view class="scroll-container">
+    <!-- 我们在这里根据 activeTab 的值，只渲染对应的那一个内容面板 -->
+    <block wx:for="{{ userpractices }}" wx:for-index="key" wx:for-item="categoryItems" wx:key="key">
+      <view class="tab-content" wx:if="{{ activeTab === key }}">
+        <view class="container">
+          <view class="category-exp-header">
+            累计修为: <text class="exp-number">{{ totalExpMap[key] }}</text>
+          </view>
+          <view class="gongfa-grid-container">
+            <block wx:if="{{ categoryItems.length > 0 }}">
+               <block wx:for="{{ categoryItems }}" wx:key="id">
+                <view wx:if="{{ item.status !== 'archived' }}" class="gongfa-item" bind:tap="onCultivate" data-gongfa="{{ item }}" data-category="{{ key }}">
+                  <image class="gongfa-book-icon" src="/images/{{ categoryIconMap[key] }}" mode="aspectFit" />
+                  <view class="gongfa-item-name">{{ item.name }}</view>
+                  <view class="gongfa-item-count">已修炼 {{ item.count }} 次</view>
+                  <view class="daily-task-tag" wx:if="{{ isDailyTask && targetGongfaId === item.id }}">今日宜练</view>
+                </view>
+              </block>
+            </block>
+            <view wx:else class="empty-state">
+              <view class="empty-text">尚未编入此路线的功法</view>
+              <view class="empty-link" bind:tap="navigateToSettings">前往功法阁</view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </block>
+  </view>
+</view>
+
+<custom-dialog 
+  class="{{ pageClass }}"
+  show="{{ showCustomDialog }}"
+  title="{{ dialogTitle }}"
+  message="{{ dialogMessage }}"
+  bind:confirm="onDialogConfirm"
+/>
+
+<view class="loading-mask {{ pageClass }}" wx:if="{{ isCultivating }}">
+  <view class="loading-content">
+    <view class="loading-text">修炼中...</view>
+    <view class="loading-bar">
+      <view class="loading-bar-inner" style="animation-duration: 1.5s;"></view>
+    </view>
+  </view>
+</view>
+
+<!-- 境界突破弹窗 -->
+<level-up-modal
+  show="{{showLevelUp}}"
+  oldLevel="{{levelUpInfo}}"
+  newLevel="{{levelUpInfo}}"
+  bind:close="closeLevelUp"
+/>
+
+<!-- 修炼结算弹窗 -->
+<practice-result
+  show="{{showSettlement}}"
+  exp="{{settlementInfo.exp}}"
+  categoryName="{{settlementInfo.categoryName}}"
+  attrChanges="{{settlementInfo.attrChanges}}"
+  bind:close="closeSettlement"
+/>
